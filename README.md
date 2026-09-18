@@ -10,8 +10,8 @@ Esse aí em cima saiu de [`exemplos/exemplo.json`](exemplos/exemplo.json) com um
 
 **O que você precisa ter**
 
-- Um computador com Mac, Windows ou Linux e internet na hora de instalar.
-- Python 3.10 ou mais novo. Para conferir, rode `python3 --version` (no Windows, `python --version`). Se não tiver, baixe em [python.org](https://www.python.org/downloads/).
+- Um Mac e internet na hora de instalar. O arrasta foi testado no Mac; Windows e Linux ainda não foram testados.
+- Python 3.10 ou mais novo. Para conferir, rode `python3 --version`. Se não tiver, baixe em [python.org](https://www.python.org/downloads/).
 - Git, para baixar o arrasta ([git-scm.com](https://git-scm.com/downloads)).
 - Cerca de 500 MB livres. A maior parte é o navegador (o Chromium) que o arrasta usa só para desenhar os slides.
 
@@ -49,9 +49,6 @@ pip install -e .
 playwright install --only-shell chromium
 ```
 
-No Windows, troque `python3` por `python` e a quarta linha por `.venv\Scripts\activate`.
-No Linux, se o último passo reclamar de biblioteca faltando, rode `playwright install --with-deps --only-shell chromium`.
-
 Pronto. Rode o primeiro comando:
 
 ```
@@ -86,8 +83,6 @@ Guarde a chave no terminal (ela fica só no seu computador):
 ```
 export ANTHROPIC_API_KEY=sua-chave
 ```
-
-No Windows: `set ANTHROPIC_API_KEY=sua-chave`.
 
 Depois é um comando só:
 
