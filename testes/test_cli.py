@@ -15,6 +15,7 @@ def test_nome_da_pasta_corta_em_palavra_inteira():
 
 def test_sem_chave_tema_vira_prompt_e_montar_gera_png(tmp_path, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     pasta = tmp_path / "c"
     assert cli.main(["tema", "carrossel que prende", "--arroba", "@teste", "--saida", str(pasta)]) == 0
     assert (pasta / "prompt.txt").exists() and json.loads((pasta / "pedido.json").read_text())["arroba"] == "@teste"

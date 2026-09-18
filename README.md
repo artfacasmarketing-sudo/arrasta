@@ -11,7 +11,7 @@ Esse aí em cima saiu de [`exemplos/exemplo.json`](exemplos/exemplo.json) com um
 **O que você precisa ter**
 
 - Um Mac e internet na hora de instalar. O arrasta foi testado no Mac; Windows e Linux ainda não foram testados.
-- Python 3.10 ou mais novo. Para conferir, rode `python3 --version`. Se não tiver, baixe em [python.org](https://www.python.org/downloads/).
+- Python 3.12 ou mais novo. Para conferir, rode `python3 --version`. Se não tiver, baixe em [python.org](https://www.python.org/downloads/).
 - Git, para baixar o arrasta ([git-scm.com](https://git-scm.com/downloads)).
 - Cerca de 500 MB livres. A maior parte é o navegador (o Chromium) que o arrasta usa só para desenhar os slides.
 
@@ -20,7 +20,7 @@ Esse aí em cima saiu de [`exemplos/exemplo.json`](exemplos/exemplo.json) com um
 Quem escreve o texto dos slides é uma IA, e essa IA é sua. O arrasta roda no seu computador, não tem conta nem servidor e não cobra nada. Você escolhe como usar:
 
 - **Sem chave, de graça:** o arrasta monta o prompt, você cola em qualquer IA (ChatGPT, Claude, Gemini, inclusive no plano grátis) e traz a resposta de volta. O arrasta confere a resposta e gera os slides.
-- **Com a sua chave da Anthropic, num comando só:** o arrasta pede o texto direto à IA, confere e gera os slides. A chave é sua, criada em [console.anthropic.com](https://console.anthropic.com), e cada carrossel é cobrado na sua conta da Anthropic ([preços](https://www.anthropic.com/pricing)). O arrasta lê a chave do seu computador e só a envia para a Anthropic.
+- **Com a sua chave da OpenAI ou da Anthropic, num comando só:** o arrasta pede o texto direto à IA, confere e gera os slides. A chave é sua, criada em [platform.openai.com](https://platform.openai.com/api-keys) ou em [console.anthropic.com](https://console.anthropic.com), e cada carrossel é cobrado na sua conta dessa empresa ([preços da OpenAI](https://openai.com/api/pricing), [preços da Anthropic](https://www.anthropic.com/pricing)). O arrasta lê a chave do seu computador e só a envia para a empresa dona dela.
 
 **O primeiro comando**, depois de instalar, gera o carrossel de exemplo, sem IA e sem chave:
 
@@ -76,11 +76,12 @@ O arrasta mostra o prompt e diz o que fazer:
 
 Se a resposta quebrar alguma regra, o arrasta mostra qual e escreve em `correcao.txt` o texto para você colar na mesma conversa da IA. Salve a nova resposta no mesmo `resposta.txt` e rode o passo 4 de novo.
 
-### Com a sua chave da Anthropic (um comando)
+### Com a sua chave da OpenAI ou da Anthropic (um comando)
 
-Guarde a chave no terminal (ela fica só no seu computador):
+Guarde a chave no terminal (ela fica só no seu computador). Use a linha da empresa da sua chave:
 
 ```
+export OPENAI_API_KEY=sua-chave
 export ANTHROPIC_API_KEY=sua-chave
 ```
 
@@ -91,7 +92,15 @@ arrasta tema "por que o cliente some depois do orçamento" --arroba @seuperfil
 ```
 
 O arrasta pede o texto à IA, confere as regras, pede correção se precisar (até 3 vezes) e grava os PNGs em `saida/<tema>/`.
-O modelo padrão é o `claude-opus-5`. Para gastar menos, escolha outro: `--modelo claude-sonnet-5`.
+
+| chave no ambiente | IA usada | modelo padrão |
+|---|---|---|
+| `OPENAI_API_KEY` | OpenAI | `gpt-6-astra` |
+| `ANTHROPIC_API_KEY` | Anthropic | `claude-opus-5` |
+| as duas | OpenAI (troque com `--ia anthropic`) | o da IA escolhida |
+| nenhuma | nenhuma: o arrasta monta o prompt para você colar | |
+
+Para gastar menos, escolha um modelo menor com `--modelo`, por exemplo `--modelo gpt-5.4-mini` ou `--modelo claude-sonnet-5`.
 
 ### Opções
 
@@ -101,6 +110,8 @@ O modelo padrão é o `claude-opus-5`. Para gastar menos, escolha outro: `--mode
 | `--publico "casais montando o primeiro apartamento"` | pra quem é o carrossel; a IA escreve pensando nessa pessoa |
 | `--slides 8` | quantos slides, de 5 a 10 (padrão 7) |
 | `--saida pasta` | outra pasta de saída |
+| `--ia openai` ou `--ia anthropic` | qual chave usar quando as duas estão no ambiente |
+| `--modelo nome` | outro modelo da IA escolhida |
 
 ### Escrevendo você mesmo
 
@@ -150,7 +161,7 @@ pip install -e ".[testes]"
 pytest
 ```
 
-Os testes plantam um defeito de cada tipo (texto demais, pedido no meio, cor sem contraste, fonte que não carrega, letra que a fonte não tem) e conferem que o arrasta recusa cada um. O caminho com chave é testado contra um servidor falso local, sem gastar nada.
+Os testes plantam um defeito de cada tipo (texto demais, pedido no meio, cor sem contraste, fonte que não carrega, letra que a fonte não tem) e conferem que o arrasta recusa cada um. O caminho com chave, da OpenAI e da Anthropic, é testado contra um servidor falso local, sem gastar nada.
 
 ## Licença
 

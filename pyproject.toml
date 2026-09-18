@@ -8,12 +8,13 @@ version = "0.1.0"
 description = "Escreva o tema, saia com o carrossel de Instagram pronto pra postar."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "playwright>=1.45",
     "pillow>=10",
     "fonttools[woff]>=4.50",
-    "anthropic>=0.70",
+    "anthropic>=1.7",
+    "openai>=3.16",
 ]
 
 [project.optional-dependencies]

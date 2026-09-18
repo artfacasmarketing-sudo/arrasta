@@ -128,11 +128,11 @@ def cmd_montar(a):
 
 
 def cmd_tema(a):
-    if not ia.tem_chave():
-        return cmd_prompt(a, motivo="Sem ANTHROPIC_API_KEY no ambiente: o arrasta monta o prompt e você cola em qualquer IA.")
-    pasta = Path(a.saida or Path("saida") / slug(a.tema))
     try:
-        dados, _ = ia.gerar(a.tema, a.publico, a.slides, a.modelo)
+        if ia.provedor(a.ia) is None:
+            return cmd_prompt(a, motivo="Sem OPENAI_API_KEY nem ANTHROPIC_API_KEY no ambiente: o arrasta monta o prompt e você cola em qualquer IA.")
+        pasta = Path(a.saida or Path("saida") / slug(a.tema))
+        dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia)
     except ia.FalhaIA as e:
         print(f"\n{e}", file=sys.stderr)
         return 1
@@ -155,9 +155,10 @@ def main(argv=None):
                        help=f"quantos slides, de {regras.SLIDES_MIN} a {regras.SLIDES_MAX} (padrão 7)")
         p.add_argument("--saida", help="pasta de saída (padrão: saida/<tema>)")
 
-    p = sub.add_parser("tema", help="gera o carrossel a partir do tema (com chave da Anthropic, num comando só)")
+    p = sub.add_parser("tema", help="gera o carrossel a partir do tema (com chave da OpenAI ou da Anthropic, num comando só)")
     tema_args(p)
-    p.add_argument("--modelo", help=f"modelo da Anthropic (padrão {ia.MODELO_PADRAO})")
+    p.add_argument("--ia", choices=ia.PROVEDORES, help="qual chave usar quando as duas estão no ambiente (padrão: openai)")
+    p.add_argument("--modelo", help="modelo da IA (padrão: " + ", ".join(f"{v} na {ia.NOME[k]}" for k, v in ia.MODELO_PADRAO.items()) + ")")
     p.set_defaults(f=cmd_tema)
 
     p = sub.add_parser("prompt", help="monta o prompt para colar em qualquer IA (sem chave)")
