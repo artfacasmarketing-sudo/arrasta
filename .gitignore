@@ -1,0 +1,9 @@
+saida/
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+.env
+.env.*
+.DS_Store

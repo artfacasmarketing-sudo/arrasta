@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arrasta"
+version = "0.1.0"
+description = "Escreva o tema, saia com o carrossel de Instagram pronto pra postar."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "playwright>=1.45",
+    "pillow>=10",
+    "fonttools[woff]>=4.50",
+    "anthropic>=0.70",
+]
+
+[project.optional-dependencies]
+testes = ["pytest>=8"]
+
+[project.scripts]
+arrasta = "arrasta.cli:main"
+
+[tool.setuptools]
+packages = ["arrasta"]
+
+[tool.setuptools.package-data]
+arrasta = ["modelo/*.html", "modelo/fontes/*"]

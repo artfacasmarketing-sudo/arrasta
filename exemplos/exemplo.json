@@ -1,0 +1,36 @@
+{
+  "arroba": "@seuperfil",
+  "visual": "escuro",
+  "slides": [
+    {
+      "tipo": "capa",
+      "titulo": "Seu carrossel morre no *primeiro* slide",
+      "texto": "e o problema não é o design"
+    },
+    {
+      "tipo": "miolo",
+      "titulo": "A capa entrega tudo",
+      "texto": "Se a resposta já está no primeiro slide, ninguém tem motivo pra arrastar. A capa abre a pergunta, o resto responde."
+    },
+    {
+      "tipo": "miolo",
+      "titulo": "Parágrafo longo vira *parede*",
+      "texto": "No celular, texto corrido cansa antes do segundo slide. Uma ideia por slide e frase curta."
+    },
+    {
+      "tipo": "miolo",
+      "titulo": "Cada slide puxa o próximo",
+      "texto": "Termine o slide com algo em aberto. Quem lê quer saber o que vem depois e arrasta sozinho."
+    },
+    {
+      "tipo": "miolo",
+      "titulo": "O pedido vai no *final*",
+      "texto": "Pedir comentário no meio corta a leitura. Guarde o pedido pro último slide, curto e claro."
+    },
+    {
+      "tipo": "final",
+      "titulo": "Agora é só testar no próximo post.",
+      "pedido": "Salva esse post pra usar no próximo carrossel"
+    }
+  ]
+}
