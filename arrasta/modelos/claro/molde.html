@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../comum.css">
+<style>
+/* claro: estrutura medida de um carrossel educativo de fundo claro, com a fonte e as cores do arrasta.
+   Medido em 1440x1920 e trazido para 1080x1350: medida horizontal e tamanho x 0,75; posição vertical em % da altura.
+   Tamanho de letra: o que faz a Inter ocupar a MESMA largura por linha que o original.
+   Entrelinha e distâncias: a mesma proporção do original em relação à altura da maiúscula. */
+:root {
+  /* tamanho de letra por nível (px) e entrelinha (px) */
+  /* título da capa: no original a capa tem o maior nível do carrossel, 1,654 x o do miolo. Aqui é o maior tamanho,
+     até esse teto, em que 60 de 60 capas de teste no limite de palavras (12 + 10) ainda cabem: 1,242 x o do miolo */
+  --capa-titulo: 123.5px; --capa-titulo-linha: 118.30px;  /* entrelinha 1,3167 x maiúscula, a mesma do título */
+  --gancho: 58.10px;  --gancho-linha: 69.74px;   /* capa: texto do gancho; entrelinha 1,65 x maiúscula */
+  --titulo: 99.43px;  --titulo-linha: 95.25px;   /* título de frase; entrelinha 1,3167 x maiúscula: a do original
+                                                    (1,156) é de texto sem acento e faz "Ó" encostar na linha de cima */
+  --corpo: 32.15px;   --corpo-linha: 40.10px;    /* texto corrido; entrelinha 1,714 x maiúscula */
+  --faixa: 42.67px;                              /* texto da faixa do último slide */
+  --cabecalho: 20.26px;                          /* @ no topo do último slide */
+  --faixa-fundo: color-mix(in srgb, var(--texto) 5.3%, var(--fundo));  /* mesma razão medida faixa/fundo: 1,11:1 */
+}
+.caixa { position: absolute; top: 0; bottom: 0; }
+.grupo { position: absolute; left: 0; right: 0; top: 0; }
+[data-id] { text-wrap: pretty; }
+.titulo, .pedido { text-wrap: balance; }  /* linhas equilibradas: sem viúva */
+
+/* capa: bloco de texto só, alinhado à esquerda, centrado na altura */
+.capa .caixa { left: 72.75px; right: 69px; }
+.capa .titulo { font-size: var(--capa-titulo); line-height: var(--capa-titulo-linha); font-weight: 800; letter-spacing: -0.02em; }
+.capa .texto { font-size: var(--gancho); line-height: var(--gancho-linha); font-weight: 400; letter-spacing: -0.012em; }
+.capa .texto .marca { font-weight: 700; }  /* no texto do gancho o destaque medido é por peso; a cor é a do arrasta */
+
+/* miolo: título em cima, fio, texto, fio */
+.miolo .caixa { left: 80.25px; right: 60.75px; }
+.miolo .titulo, .final .pedido { font-size: var(--titulo); line-height: var(--titulo-linha); font-weight: 800; letter-spacing: -0.02em; }
+.miolo .texto, .final .texto { font-size: var(--corpo); line-height: var(--corpo-linha); font-weight: 450; }
+.fio { position: absolute; left: 60.75px; right: 60.75px; height: 3px; }
+.fio1 { background: var(--texto); }
+.fio2 { background: var(--texto2); }
+
+/* final: @ no topo, faixa com o título, pedido grande */
+.final .caixa { left: 75px; right: 75px; text-align: center; }
+.cabecalho { position: absolute; left: 0; right: 0; text-align: center; font-size: var(--cabecalho); font-weight: 500; }
+.final .titulo {
+  margin: 0 auto; width: 764.25px; background: var(--faixa-fundo);
+  font-size: var(--faixa); line-height: 45.5px; font-weight: 500; letter-spacing: -0.01em;
+  padding: 0 15.2px 7.94px;   /* borda de cima ao topo da maiúscula 0,233 x maiúscula; base à borda de baixo 0,488 x maiúscula */
+}
+.final .pedido { text-transform: uppercase; }
+</style>
+</head>
+<body>
+<script src="../comum.js"></script>
+<script>
+// posições verticais medidas (px no canvas 1080x1350)
+const CAPA_CENTRO = 670.4;          // centro do bloco de texto: 49,66% da altura
+const LIMITE_TOPO = 60.5;           // margem de cima: 4,48%
+const LIMITE_BASE = 1263.5;         // margem de baixo: 6,41%
+const TITULO_TOPO = 429.6;          // topo da maiúscula do título do miolo: 31,82%
+// fio de cima do texto do miolo: 1,406 x maiúscula do título abaixo da tinta dele (mediana dos miolos medidos,
+// da base do título ao fio). A posição fixa de 78,80% foi medida com a fileira de pílulas no meio, que o arrasta não
+// tem: deixava 34% da altura vazia contra 9,6% no original (auditoria, linha claro.miolo.18)
+const TITULO_A_FIO = 1.406;
+const FIO1_A_BASE = 58.8;           // do fio à 1a linha de base do texto: 2,514 x maiúscula do texto
+const BASE_A_FIO2 = 33.4;           // da última linha de base ao fio de baixo: 1,43 x maiúscula do texto
+const CABECALHO_TOPO = 61.9;        // topo da maiúscula do @ no último slide: 4,58%
+const FAIXA_TOPO = 151.9;           // topo da faixa: 11,25%
+// vão entre dois blocos de texto: 3,385 x o maior vão entre linhas dos dois (os dois blocos do gancho medidos: 132 / 39)
+const VAO_BLOCO = 3.385;
+
+function montar(s, meta) {
+  aplicarCores(meta.cores);
+  const papel = papelDe(meta);
+  document.body.className = papel;
+  let h = "";
+  if (papel === "final") h += '<div class="cabecalho" data-id="arroba">' + esc(meta.arroba || "") + '</div>';
+  h += '<div class="caixa" data-caixa="texto"><div class="grupo">';
+  const tag = papel === "capa" ? "h1" : "h2";
+  h += '<' + tag + ' class="titulo" data-id="titulo">' + marcas(s.titulo) + '</' + tag + '>';
+  if (papel === "final" && s.pedido) h += '<p class="pedido" data-id="pedido">' + marcas(s.pedido) + '</p>';
+  if (s.texto) h += '<p class="texto" data-id="texto">' + marcas(s.texto) + '</p>';
+  h += '</div></div>';
+  if (papel === "miolo") {
+    h += '<div class="fio fio1"></div>';
+    if (s.texto) h += '<div class="fio fio2"></div>';
+  }
+  document.body.innerHTML = h;
+}
+
+function ajustar() {
+  const papel = document.body.className;
+  const caixa = document.querySelector(".caixa"), grupo = document.querySelector(".grupo");
+  const titulo = document.querySelector(".titulo"), texto = document.querySelector(".texto");
+  caixa.dataset.top = LIMITE_TOPO;
+  caixa.dataset.bottom = LIMITE_BASE;
+  if (papel === "capa") {
+    if (texto) abaixo(texto, titulo, VAO_BLOCO);
+    // centro entre o topo da maiúscula da 1a linha e a linha de base da última
+    const ultimo = texto || titulo;
+    const l0 = linhas(titulo)[0], lu = linhas(ultimo).at(-1);
+    const centro = (topoDaMaiuscula(l0, tamanho(titulo)) + linhaDeBase(lu, tamanho(ultimo))) / 2;
+    mover(grupo, CAPA_CENTRO - centro);
+  } else if (papel === "miolo") {
+    mover(grupo, TITULO_TOPO - topoDaMaiuscula(linhas(titulo)[0], tamanho(titulo)));
+    const fio1 = document.querySelector(".fio1");
+    const FIO1 = fimDaTinta(titulo) + TITULO_A_FIO * capDe(titulo);
+    fio1.style.top = FIO1 + "px";
+    caixa.dataset.bottom = FIO1;
+    if (texto) {
+      // o texto sai do fluxo do título e vai para baixo do fio
+      texto.style.position = "absolute"; texto.style.left = "0"; texto.style.right = "0"; texto.style.top = "0";
+      const caixaTexto = document.createElement("div");
+      caixaTexto.className = "caixa"; caixaTexto.dataset.caixa = "texto-miolo";
+      caixaTexto.dataset.top = FIO1; caixaTexto.dataset.bottom = LIMITE_BASE;
+      document.body.appendChild(caixaTexto);
+      caixaTexto.appendChild(texto);
+      mover(texto, FIO1 + FIO1_A_BASE - linhaDeBase(linhas(texto)[0], tamanho(texto)));
+      const fio2 = document.querySelector(".fio2");
+      fio2.style.top = (linhaDeBase(linhas(texto).at(-1), tamanho(texto)) + BASE_A_FIO2) + "px";
+      // o fio de baixo também tem de caber acima da margem
+      const sobra = fio2.getBoundingClientRect().bottom - texto.getBoundingClientRect().bottom;
+      caixaTexto.dataset.bottom = LIMITE_BASE - sobra;
+    }
+    // o bloco inteiro (título, fio, texto, fio) fica centrado entre o topo medido (31,82%) e a margem de baixo.
+    // Escolha, não medida: o original enche esse espaço com pílulas que o arrasta não tem (auditoria, claro.miolo.11)
+    const ultimoFio = document.querySelector(".fio2") || fio1;
+    const desce = (LIMITE_BASE - ultimoFio.getBoundingClientRect().bottom) / 2;
+    if (desce > 0) {
+      for (const el of [grupo, fio1, texto, document.querySelector(".fio2")]) if (el) mover(el, desce);
+      caixa.dataset.bottom = FIO1 + desce;
+      const caixaTexto = document.querySelector('[data-caixa="texto-miolo"]');
+      if (caixaTexto) caixaTexto.dataset.top = FIO1 + desce;
+    }
+  } else {
+    const cab = document.querySelector(".cabecalho");
+    if (cab.textContent.trim()) cab.style.top = (CABECALHO_TOPO - topoDaMaiuscula(linhas(cab)[0], tamanho(cab))) + "px";
+    mover(grupo, FAIXA_TOPO - titulo.getBoundingClientRect().top);
+    const pedido = document.querySelector(".pedido");
+    if (pedido) abaixo(pedido, titulo, VAO_BLOCO);
+    if (texto) abaixo(texto, pedido || titulo, VAO_BLOCO);
+  }
+}
+</script>
+</body>
+</html>

@@ -7,6 +7,8 @@ prende de verdade, se a ordem conta uma história) fica no prompt e na sua leitu
 import re
 import unicodedata
 
+from .visual import MODELOS, VISUAIS
+
 # limites de palavras por papel
 CAPA_TITULO = 12
 CAPA_TEXTO = 10
@@ -19,9 +21,8 @@ SLIDES_MAX = 10
 DESTAQUES_POR_SLIDE = 2
 
 TIPOS = ("capa", "miolo", "final")
-CAMPOS_SLIDE = {"tipo", "titulo", "texto", "pedido"}
-CAMPOS_TOPO = {"arroba", "visual", "cores", "tema", "slides"}
-VISUAIS = ("escuro", "claro")
+CAMPOS_SLIDE = {"tipo", "titulo", "texto", "pedido", "imagem"}
+CAMPOS_TOPO = {"arroba", "visual", "cores", "tema", "slides", "imagem"}
 CHAVES_COR = ("fundo", "texto", "texto2", "destaque", "sobre_destaque")
 
 PALAVRA = re.compile(r"[0-9A-Za-zÀ-ÖØ-öø-ÿ]+(?:[-'][0-9A-Za-zÀ-ÖØ-öø-ÿ]+)*")
@@ -88,7 +89,9 @@ def verificar(dados, fonte_dos_numeros=None):
     if "arroba" in dados and not (isinstance(dados["arroba"], str) and ARROBA.match(dados["arroba"])):
         add("formato", "arroba", "use o formato @seuperfil (letras, números, ponto e _)")
     if "visual" in dados and dados["visual"] not in VISUAIS:
-        add("formato", "visual", f"use \"escuro\" ou \"claro\"")
+        add("formato", "visual", "use " + ", ".join(f"\"{v}\"" for v in VISUAIS))
+    if "imagem" in dados and not (isinstance(dados["imagem"], str) and dados["imagem"].strip()):
+        add("formato", "imagem", "imagem é o caminho do arquivo da foto, entre aspas")
     if "cores" in dados:
         c = dados["cores"]
         if not isinstance(c, dict):
@@ -116,8 +119,8 @@ def verificar(dados, fonte_dos_numeros=None):
             continue
         for k in s:
             if k not in CAMPOS_SLIDE:
-                add("formato", onde, f"campo desconhecido \"{k}\" (os aceitos: tipo, titulo, texto, pedido)")
-        for k in ("titulo", "texto", "pedido"):
+                add("formato", onde, f"campo desconhecido \"{k}\" (os aceitos: tipo, titulo, texto, pedido, imagem)")
+        for k in ("titulo", "texto", "pedido", "imagem"):
             if k in s and not isinstance(s[k], str):
                 add("formato", onde, f"{k} tem de ser texto")
         tipo = s.get("tipo")
@@ -130,6 +133,10 @@ def verificar(dados, fonte_dos_numeros=None):
             add("formato", onde, "falta o titulo")
     if any(not isinstance(s, dict) or not isinstance(s.get("titulo", ""), str) for s in slides):
         return erros
+    if MODELOS.get(dados.get("visual", "escuro"), {}).get("imagem"):
+        sem = [str(i) for i, s in enumerate(slides, 1) if not (s.get("imagem") or dados.get("imagem"))]
+        if sem:
+            add("formato", "imagem", f"o visual imagem pede uma foto: \"imagem\" no topo (uma para todos) ou em cada slide (falta no slide {', '.join(sem)})")
 
     for i, s in enumerate(slides, 1):
         onde = f"slide {i}"
@@ -201,6 +208,7 @@ def descrever():
    com até {PEDIDO} palavras, e o último slide com até {FINAL_TOTAL} palavras no total.
 5. Escrita: sem emoji, sem travessão, sem hashtag, sem link e sem clichê de guru.
 6. Número com fonte: quando o texto vem da IA, todo número nos slides tem de estar no tema que você escreveu.
-7. Cabe na caixa: a letra nunca encolhe. Se o texto não cabe, o slide é recusado e você encurta.
+7. Cabe na caixa: a letra nunca encolhe. Se o texto não cabe, o slide é recusado e você encurta. Dois textos não encostam.
+8. Dá para ler: o contraste de cada letra é medido no slide desenhado, contra o que fica embaixo dela, inclusive a foto.
 
 O que a máquina não mede (se o gancho prende, se a ordem conta uma história) vai como orientação no prompt."""

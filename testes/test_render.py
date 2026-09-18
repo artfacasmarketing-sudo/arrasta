@@ -54,21 +54,21 @@ def test_defeito_plantado_e_recusado_sem_gravar(tmp_path, plantar, trecho):
 
 def test_fonte_que_nao_carrega_e_recusada(tmp_path, monkeypatch):
     """controle do instrumento: sem os arquivos de fonte, a conferência 'carregou' tem de acusar."""
-    modelo = tmp_path / "modelo"
-    shutil.copytree(render.MODELO, modelo)
-    for f in (modelo / "fontes").glob("*.woff2"):
+    modelos = tmp_path / "modelos"
+    shutil.copytree(render.MODELOS, modelos)
+    for f in (modelos / "fontes").glob("*.woff2"):
         f.unlink()
-    monkeypatch.setattr(render, "MODELO", modelo)
+    monkeypatch.setattr(render, "MODELOS", modelos)
     with pytest.raises(render.Recusado, match="fonte não carregou"):
         render.renderizar(ex(), tmp_path / "saida")
 
 
 def test_molde_com_letra_fora_da_fonte_e_recusado(tmp_path, monkeypatch):
     """a seta da capa era "→", que a Inter embutida não tem: cada sistema desenhava com a fonte dele."""
-    modelo = tmp_path / "modelo"
-    shutil.copytree(render.MODELO, modelo)
-    html = modelo / "slide.html"
+    modelos = tmp_path / "modelos"
+    shutil.copytree(render.MODELOS, modelos)
+    html = modelos / "escuro" / "molde.html"
     html.write_text(html.read_text(encoding="utf-8").replace(">arrasta<svg", ">arrasta →<svg"), encoding="utf-8")
-    monkeypatch.setattr(render, "MODELO", modelo)
+    monkeypatch.setattr(render, "MODELOS", modelos)
     with pytest.raises(render.Recusado, match="U\\+2192"):
         render.renderizar(ex(), tmp_path / "saida")

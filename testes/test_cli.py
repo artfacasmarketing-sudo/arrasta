@@ -54,7 +54,7 @@ def test_le_resposta_como_o_editor_gravou(tmp_path, codificacao):
     """Bloco de Notas grava UTF-8 com BOM; PowerShell 5 (Out-File, >) grava UTF-16."""
     (tmp_path / "resposta.txt").write_text(json.dumps(EXEMPLO, ensure_ascii=False), encoding=codificacao)
     assert cli.main(["montar", str(tmp_path / "resposta.txt")]) == 0
-    assert json.loads((tmp_path / "slides.json").read_text(encoding="utf-8"))["slides"][1]["titulo"] == "A capa entrega tudo"
+    assert json.loads((tmp_path / "slides.json").read_text(encoding="utf-8"))["slides"][1]["titulo"] == EXEMPLO["slides"][1]["titulo"]
 
 
 def test_arquivo_fora_de_utf8_da_erro_claro(tmp_path, capsys):

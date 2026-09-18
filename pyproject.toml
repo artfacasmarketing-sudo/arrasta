@@ -27,4 +27,4 @@ arrasta = "arrasta.cli:main"
 packages = ["arrasta"]
 
 [tool.setuptools.package-data]
-arrasta = ["modelo/*.html", "modelo/fontes/*"]
+arrasta = ["modelos/*.css", "modelos/*.js", "modelos/*/*.html", "modelos/fontes/*"]

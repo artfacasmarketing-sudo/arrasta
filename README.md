@@ -10,7 +10,7 @@ Esse aí em cima saiu de [`exemplos/exemplo.json`](exemplos/exemplo.json) com um
 
 **O que você precisa ter**
 
-- Mac, Windows 10 ou 11, ou Linux (Ubuntu 24.04 ou mais novo, Debian 13 ou mais novo), e internet na hora de instalar. A instalação foi testada do zero no Mac e no Linux (Ubuntu 24.04 e Debian 13). No Windows ainda não rodou numa máquina de verdade.
+- Mac, Windows 10 ou 11, ou Linux (Ubuntu 24.04 ou mais novo, Debian 13 ou mais novo), e internet na hora de instalar. A instalação é testada do zero a cada mudança no Mac, no Linux e no Windows (teste automático do GitHub, com Windows Server 2025), e foi testada à mão no Ubuntu 24.04 e no Debian 13. Ainda não rodou num Windows 10 ou 11 de usuário.
 - Python 3.12 ou mais novo. Para conferir, rode `python3 --version` (no Windows, `py --version`). Se não tiver, baixe em [python.org](https://www.python.org/downloads/). No Ubuntu 24.04 e no Debian 13 ele já vem instalado.
 - Git, para baixar o arrasta ([git-scm.com](https://git-scm.com/downloads)).
 - Cerca de 500 MB livres (no Linux, até 1,1 GB, porque instala também as bibliotecas do sistema que o navegador usa). A maior parte é o navegador (o Chromium) que o arrasta usa só para desenhar os slides.
@@ -153,12 +153,14 @@ Para gastar menos, escolha um modelo menor com `--modelo`, por exemplo `--modelo
 
 | opção | para quê |
 |---|---|
-| `--arroba "@seuperfil"` | seu @ no topo de cada slide (com aspas: no PowerShell, `@` sem aspas some do comando) |
+| `--arroba "@seuperfil"` | seu @ nos slides; o lugar muda com o visual (com aspas: no PowerShell, `@` sem aspas some do comando) |
 | `--publico "casais montando o primeiro apartamento"` | pra quem é o carrossel; a IA escreve pensando nessa pessoa |
 | `--slides 8` | quantos slides, de 5 a 10 (padrão 7) |
 | `--saida pasta` | outra pasta de saída |
 | `--ia openai` ou `--ia anthropic` | qual chave usar quando as duas estão no ambiente |
 | `--modelo nome` | outro modelo da IA escolhida |
+| `--visual claro` | o visual dos slides: `escuro` (padrão), `claro` ou `imagem` |
+| `--imagem foto.jpg` | a foto de fundo do visual `imagem`, a mesma em todos os slides |
 
 ### Escrevendo você mesmo
 
@@ -167,6 +169,23 @@ Copie `exemplos/exemplo.json`, troque os textos e rode:
 ```
 arrasta render meu-carrossel.json
 ```
+
+## Os três visuais
+
+Escolha com `--visual` em qualquer comando. Os três aceitam o mesmo texto: o limite de palavras é igual em todos.
+
+| visual | como fica |
+|---|---|
+| `escuro` (padrão) | fundo escuro, título grande, o pedido numa caixa colorida no último slide |
+| `claro` | fundo claro. Na capa, o título grande e o texto de apoio embaixo; no miolo, o título fica em cima e o texto entre dois fios embaixo; no último slide, seu @ no topo, a frase numa faixa e o pedido em letras grandes |
+| `imagem` | uma foto sua no alto do slide, escurecendo até uma faixa escura embaixo, onde fica o texto. Quanto mais texto, menos foto aparece |
+
+```
+arrasta tema "por que o cliente some depois do orçamento" --arroba "@seuperfil" --visual claro
+arrasta tema "por que o cliente some depois do orçamento" --arroba "@seuperfil" --visual imagem --imagem minha-foto.jpg
+```
+
+No `imagem`, a foto é sua (JPG, PNG ou WebP). `--imagem` põe a mesma foto em todos os slides; para uma foto por slide, escreva `"imagem"` em cada slide do slides.json. Com qualquer foto, o contraste de cada letra é medido contra o que fica embaixo dela no slide desenhado; se não der para ler, o slide é recusado.
 
 ## O formato do slides.json
 
@@ -184,7 +203,8 @@ arrasta render meu-carrossel.json
 
 - `tipo`: `capa` no primeiro slide, `final` no último, `miolo` no meio.
 - `*palavra*` fica na cor de destaque (até 2 destaques por slide).
-- `visual`: `escuro` ou `claro`.
+- `visual`: `escuro`, `claro` ou `imagem`.
+- `imagem`: a foto de fundo do visual `imagem`. No topo do arquivo, vale para todos os slides; dentro de um slide, só para ele. Caminho relativo é lido a partir da pasta do slides.json.
 - `cores` (opcional) troca as cores do visual, por exemplo `"cores": {"destaque": "#22c55e"}`. As chaves são `fundo`, `texto`, `texto2`, `destaque` e `sobre_destaque`. Se a cor não tiver contraste para ler, o arrasta recusa e diz qual.
 
 ## As regras
@@ -197,7 +217,8 @@ Todo carrossel passa por estas regras antes de virar PNG. Veja a qualquer hora c
 4. **Pedido no lugar certo:** o pedido (comentar, salvar, mandar pra alguém) só no último slide, com até 12 palavras, e o último slide com até 25 palavras.
 5. **Escrita:** sem emoji, sem travessão, sem hashtag, sem link e sem clichê de guru.
 6. **Número com fonte:** quando o texto vem da IA, todo número nos slides tem de estar no tema que você escreveu. A IA não inventa estatística.
-7. **Cabe na caixa:** a letra nunca encolhe para caber. Se o texto não cabe, o slide é recusado e você encurta.
+7. **Cabe na caixa:** a letra nunca encolhe para caber. Se o texto não cabe, o slide é recusado e você encurta. Dois textos do mesmo slide também não podem encostar um no outro.
+8. **Dá para ler:** o contraste de cada letra é medido no slide desenhado, contra o que fica embaixo dela, inclusive a foto (mínimo da WCAG: 4,5:1; texto grande, 3:1).
 
 O que a máquina não mede (se o gancho prende de verdade, se a ordem conta uma história) vai como orientação no prompt e fica com a sua leitura.
 

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../comum.css">
+<style>
+/* imagem: estrutura medida de um carrossel de notícia com foto de fundo, com a fonte e as cores do arrasta.
+   Medido em 1440x1800, a mesma proporção do arrasta: toda medida x 0,75.
+   A foto ocupa o alto do slide e escurece até a cor de fundo; o texto fica na faixa de baixo, logo abaixo da foto.
+   Altura da foto medida: capa 66,39%, miolo 39,44% (o card de foto do miolo), último slide 80,11%.
+   Texto que não cabe embaixo empurra a faixa para cima e a foto diminui.
+   Tamanho de letra: o que faz a Inter ocupar a MESMA largura por linha que o original.
+   Entrelinha e distâncias: a mesma proporção do original em relação à altura da maiúscula. */
+:root {
+  --capa-titulo: 61.11px;  --capa-titulo-linha: 58.54px;   /* caixa-alta; entrelinha 1,3167 x maiúscula */
+  --corpo: 34.69px;        --corpo-linha: 48.32px;         /* texto corrido; entrelinha 1,914 x maiúscula */
+  --final-titulo: 53.35px; --final-titulo-linha: 51.10px;
+  --final-pedido: 86.26px; --final-pedido-linha: 82.62px;
+  --marca: 33.00px;        /* @ sobre o fio da capa: maiúscula de 24 px */
+  --dica: 24.74px;         /* "arrasta" no pé da capa: maiúscula de 18 px */
+  --escurecer: 193.9px;    /* altura do escurecimento no pé da foto: média de 265 e 252 px medidos, x 0,75 */
+}
+.foto { position: absolute; left: 0; right: 0; top: 0; height: 0; overflow: hidden; }
+.foto img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+.foto::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--escurecer);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--fundo) 0%, transparent), var(--fundo));
+}
+.caixa { position: absolute; top: 0; bottom: 0; }
+.bloco { position: absolute; left: 0; right: 0; top: 0; }
+[data-id] { text-wrap: pretty; }
+.titulo, .pedido { text-wrap: balance; }  /* linhas equilibradas: sem viúva */
+.caixa-alta { text-transform: uppercase; font-weight: 800; }
+
+.capa .caixa { left: 92.25px; right: 92.25px; text-align: center; }
+.capa .titulo { font-size: var(--capa-titulo); line-height: var(--capa-titulo-linha); letter-spacing: -0.01em; }
+.capa .texto { font-size: var(--corpo); line-height: var(--corpo-linha); font-weight: 500; color: var(--texto2); }
+
+.miolo .caixa { left: 34.5px; right: 45px; }
+.miolo .titulo { font-size: var(--capa-titulo); line-height: var(--capa-titulo-linha); letter-spacing: -0.01em; }  /* a estrutura da capa, com o título dela */
+.miolo .texto { font-size: var(--corpo); line-height: var(--corpo-linha); font-weight: 450; }
+
+.final .caixa { left: 73.5px; right: 73.5px; text-align: center; }
+.final .titulo { font-size: var(--final-titulo); line-height: var(--final-titulo-linha); }
+.final .pedido { font-size: var(--final-pedido); line-height: var(--final-pedido-linha); }
+.final .texto { font-size: var(--corpo); line-height: var(--corpo-linha); font-weight: 450; }
+
+.fio { position: absolute; top: 0; left: 43.5px; right: 44.25px; display: flex; align-items: center; }
+.fio i { flex: 1; height: 2.25px; background: var(--texto); }
+.fio span { padding: 0 8.25px; font-size: var(--marca); font-weight: 800; line-height: 1; position: relative; }
+.dica {
+  position: absolute; top: 0; left: 0; right: 0; text-align: center; line-height: 1;
+  font-size: var(--dica); font-weight: 800; text-transform: uppercase;
+}
+.dica svg { height: 18px; width: 20px; margin-left: 8px; vertical-align: baseline; }
+</style>
+</head>
+<body>
+<script src="../comum.js"></script>
+<script>
+// posições medidas (px no canvas 1080x1350)
+const FOTO = {capa: 896.3, miolo: 532.5, final: 1081.5};         // onde a foto termina: 66,39%, 39,44%, 80,11%
+const ANCORA = {capa: 1284.75, miolo: 1284.75, final: 1259.25};  // a última linha de base não passa daqui
+const DICA_BASE = 1335;             // linha de base do "arrasta" no pé da capa
+const LIMITE_TOPO = 205.5;          // o texto não sobe acima de 15,22% da altura
+const FOTO_ACIMA = 0.23;            // a foto termina 0,23 x maiúscula acima do topo da 1a linha
+const MARCA_ACIMA = 0.40;           // da base do @ ao topo da maiúscula do título: 0,40 x maiúscula do título
+// vão entre dois blocos de texto: 3,094 x o maior vão entre linhas dos dois (título -> texto no miolo medido: 99 / 32)
+const VAO_BLOCO = 3.094;
+
+function montar(s, meta) {
+  aplicarCores(meta.cores);
+  const papel = papelDe(meta);
+  document.body.className = papel;
+  let h = '<div class="foto">' + (meta.imagem ? '<img src="' + esc(meta.imagem) + '" alt="">' : "") + '</div>';
+  if (papel === "capa") h += '<div class="fio"><i></i>' + (meta.arroba ? '<span data-id="arroba">' + esc(meta.arroba) + '</span><i></i>' : "") + '</div>';
+  h += '<div class="caixa" data-caixa="texto"><div class="bloco">';
+  const tag = papel === "capa" ? "h1" : "h2";
+  h += '<' + tag + ' class="titulo caixa-alta" data-id="titulo">' + marcas(s.titulo) + '</' + tag + '>';
+  if (s.texto) h += '<p class="texto" data-id="texto">' + marcas(s.texto) + '</p>';
+  if (papel === "final" && s.pedido) h += '<p class="pedido caixa-alta" data-id="pedido">' + marcas(s.pedido) + '</p>';
+  h += '</div></div>';
+  if (papel === "capa") h += '<div class="dica" data-id="dica">arrasta<svg viewBox="0 0 20 18" aria-hidden="true">'
+        + '<path d="M3 2l7 7-7 7M11 2l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+  document.body.innerHTML = h;
+}
+
+function ajustar() {
+  const papel = document.body.className;
+  const caixa = document.querySelector(".caixa"), bloco = document.querySelector(".bloco");
+  const titulo = document.querySelector(".titulo"), texto = document.querySelector(".texto"), pedido = document.querySelector(".pedido");
+  caixa.dataset.top = LIMITE_TOPO;
+  caixa.dataset.bottom = 1350;
+  if (texto) abaixo(texto, titulo, VAO_BLOCO);
+  if (pedido) abaixo(pedido, texto || titulo, VAO_BLOCO);
+  // o título começa logo abaixo da foto na altura medida
+  mover(bloco, FOTO[papel] + FOTO_ACIMA * capDe(titulo) - topoDaMaiuscula(linhas(titulo)[0], tamanho(titulo)));
+  // e sobe (a foto diminui) se o texto passar do limite de baixo
+  const ultimo = pedido || texto || titulo;
+  let limite = ANCORA[papel];
+  const dica = document.querySelector(".dica");
+  if (dica) {
+    dica.style.top = (DICA_BASE - linhaDeBase(linhas(dica)[0], tamanho(dica))) + "px";
+    // o "arrasta" no pé também é um bloco: o texto de cima guarda o mesmo vão dele
+    const topoDica = topoDaMaiuscula(linhas(dica)[0], tamanho(dica));
+    const desce = caixaAlta(ultimo) ? 0 : DESCIDA * tamanho(ultimo);
+    limite = Math.min(limite, topoDica - VAO_BLOCO * Math.max(vaoDe(ultimo), vaoDe(dica)) - desce);
+  }
+  const base = linhaDeBase(linhas(ultimo).at(-1), tamanho(ultimo));
+  if (base > limite) mover(bloco, limite - base);
+  else if (papel === "miolo") mover(bloco, (limite - base) / 2);  // miolo: centrado na área de leitura, como no escuro
+  const capaTopo = topoDaMaiuscula(linhas(titulo)[0], tamanho(titulo));
+  document.querySelector(".foto").style.height = Math.max(0, capaTopo - FOTO_ACIMA * capDe(titulo)) + "px";
+  if (papel === "capa") {
+    const fio = document.querySelector(".fio"), linha = fio.querySelector("i");
+    const marca = fio.querySelector("span");
+    // a tinta do @ termina a 0,40 x maiúscula do título acima dele (o original, sem perna de letra, mede da base;
+    // o @ e o "p" descem abaixo da base, então conta a descida); o fio passa no meio da maiúscula do @
+    const y = capaTopo - MARCA_ACIMA * capDe(titulo) - (marca ? DESCIDA * tamanho(marca) + capDe(marca) / 2 : 0);
+    fio.style.top = (y - (linha.getBoundingClientRect().top + linha.getBoundingClientRect().height / 2)) + "px";
+    if (marca) {
+      const centro = topoDaMaiuscula(linhas(marca)[0], tamanho(marca)) + capDe(marca) / 2;
+      marca.style.top = (y - centro) + "px";
+    }
+  }
+}
+</script>
+</body>
+</html>

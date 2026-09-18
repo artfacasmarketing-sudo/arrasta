@@ -55,3 +55,17 @@ def correcao(erros):
 {linhas}
 
 Reescreva o JSON inteiro corrigindo só isso. Mantenha o resto. Responda só com o JSON, sem texto antes ou depois."""
+
+
+def aviso_viuva(v):
+    campo = {"titulo": "do título", "pedido": "do pedido"}[v["id"]]
+    qual = "a última linha" if v["ultima"] else "uma linha"
+    return f"slide {v['slide']}: {qual} {campo} ficou com uma palavra só (\"{v['palavra']}\"): troque a palavra ou encurte"
+
+
+def ajuste_linhas(avisos):
+    linhas = "\n".join(f"- {aviso_viuva(v)}" for v in avisos)
+    return f"""Seu carrossel foi gerado, mas estas linhas ficaram com uma palavra só:
+{linhas}
+
+Reescreva o JSON inteiro mudando só esses campos, com o mesmo sentido e sem passar dos limites de palavras. Mantenha o resto. Responda só com o JSON, sem texto antes ou depois."""

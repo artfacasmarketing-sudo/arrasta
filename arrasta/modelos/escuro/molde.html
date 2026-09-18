@@ -2,32 +2,10 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<link rel="stylesheet" href="../comum.css">
 <style>
-@font-face {
-  font-family: "Inter Arrasta";
-  src: url("fontes/Inter-latin-wght.woff2") format("woff2");
-  font-weight: 100 900;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "Inter Arrasta";
-  src: url("fontes/Inter-latin-ext-wght.woff2") format("woff2");
-  font-weight: 100 900;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-:root {
-  --fundo: #0f1115; --texto: #f4f1ea; --texto2: #a3a9b4; --destaque: #ffc83d; --sobre-destaque: #0f1115;
-  --margem: 96px;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 1080px; height: 1350px; overflow: hidden; }
-body {
-  background: var(--fundo); color: var(--texto);
-  font-family: "Inter Arrasta", sans-serif;
-  font-feature-settings: "ss01" 0, "cv11" 1;
-  -webkit-font-smoothing: antialiased;
-  position: relative;
-}
+/* escuro: o modelo original do arrasta. Cores em visual.py; aqui só posição e tamanho. */
+:root { --margem: 96px; }
 .topo {
   position: absolute; top: 72px; left: var(--margem); right: var(--margem); height: 40px;
   display: flex; justify-content: space-between; align-items: center;
@@ -39,8 +17,7 @@ body {
 }
 .capa .zona { justify-content: flex-end; }
 .miolo .zona, .final .zona { justify-content: center; }
-.zona > * { overflow-wrap: normal; word-break: normal; hyphens: manual; }
-.titulo { font-weight: 800; letter-spacing: -0.035em; text-wrap: pretty; }
+.titulo { font-weight: 800; letter-spacing: -0.035em; text-wrap: balance; }  /* linhas equilibradas: sem viúva */
 .capa .titulo { font-size: 104px; line-height: 1.0; }
 .miolo .titulo { font-size: 80px; line-height: 1.05; }
 .final .titulo { font-size: 84px; line-height: 1.04; }
@@ -50,9 +27,8 @@ body {
   margin-top: 56px; align-self: flex-start; max-width: 100%;
   background: var(--destaque); color: var(--sobre-destaque);
   font-size: 50px; line-height: 1.18; font-weight: 750; letter-spacing: -0.02em;
-  padding: 34px 44px 38px; border-radius: 28px; text-wrap: pretty;
+  padding: 34px 44px 38px; border-radius: 28px; text-wrap: balance;
 }
-.marca { color: var(--destaque); }
 .pedido .marca { color: inherit; text-decoration: underline; text-decoration-thickness: 5px; text-underline-offset: 8px; }
 .trilho {
   position: absolute; left: var(--margem); right: var(--margem); bottom: 96px; height: 8px;
@@ -68,21 +44,15 @@ body {
 </style>
 </head>
 <body>
+<script src="../comum.js"></script>
 <script>
-function esc(s) {
-  return s.replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-}
-function marcas(s) {
-  // *palavra* vira destaque; o resto é texto puro
-  return esc(s).replace(/\*([^*]+)\*/g, '<span class="marca">$1</span>');
-}
 function montar(s, meta) {
-  const r = document.documentElement.style;
-  for (const [k, v] of Object.entries(meta.cores)) r.setProperty("--" + k.replace("_", "-"), v);
+  aplicarCores(meta.cores);
+  s.papel = papelDe(meta);
   document.body.className = s.papel;
   let h = '<div class="topo"><span data-id="arroba">' + esc(meta.arroba || "") + '</span>'
         + '<span data-id="contador">' + (s.papel === "capa" ? "" : meta.i + " / " + meta.n) + '</span></div>';
-  h += '<div class="zona" data-zona="1">';
+  h += '<div class="zona" data-caixa="zona">';
   const tag = s.papel === "capa" ? "h1" : "h2";
   h += '<' + tag + ' class="titulo" data-id="titulo">' + marcas(s.titulo) + '</' + tag + '>';
   if (s.texto) h += '<p class="' + (s.papel === "capa" ? "apoio" : "texto") + '" data-id="texto">' + marcas(s.texto) + '</p>';
@@ -93,37 +63,6 @@ function montar(s, meta) {
         + '<path d="M3 12h17M13 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
   h += '<div class="trilho"><i style="width:' + (100 * meta.i / meta.n).toFixed(2) + '%"></i></div>';
   document.body.innerHTML = h;
-}
-async function medir() {
-  await document.fonts.ready;
-  const fontes = [];
-  for (const el of document.querySelectorAll("[data-id]")) {
-    if (!el.textContent.trim()) continue;
-    const cs = getComputedStyle(el);
-    let usadas = [];
-    try {
-      usadas = await document.fonts.load(cs.fontWeight + " " + cs.fontSize + ' "Inter Arrasta"', el.textContent);
-    } catch (e) {
-      usadas = [];  // arquivo da fonte não abriu: conta como não carregada
-    }
-    fontes.push({id: el.dataset.id, faces: usadas.length, carregadas: usadas.filter(f => f.status === "loaded").length,
-                 familia: cs.fontFamily.startsWith('"Inter Arrasta"')});
-  }
-  const z = document.querySelector("[data-zona]");
-  const zr = z.getBoundingClientRect();
-  const filhos = [...z.children].map(el => {
-    const b = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    return {id: el.dataset.id, top: b.top - parseFloat(cs.marginTop), bottom: b.bottom + parseFloat(cs.marginBottom),
-            sw: el.scrollWidth, cw: el.clientWidth};
-  });
-  return {
-    zona: {top: zr.top, bottom: zr.bottom},
-    filhos: filhos,
-    fontes: fontes,
-    canvas: [window.innerWidth, window.innerHeight],
-    texto: document.body.innerText,
-  };
 }
 </script>
 </body>

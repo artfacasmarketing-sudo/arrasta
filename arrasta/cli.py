@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import __version__
 from . import prompt as P
-from . import ia, regras, resposta
+from . import ia, regras, resposta, visual
 
 PEDIDO = "pedido.json"
 # nomes que o Windows não aceita como pasta
@@ -45,20 +45,54 @@ def mostrar_erros(erros):
         print(f"  {onde} [{regra}]: {msg}", file=sys.stderr)
 
 
-def gerar_pngs(dados, saida):
+def aplicar_visual(dados, a, base, pedido=None):
+    """--visual e --imagem valem sobre o arquivo; caminho de foto relativo vira absoluto a partir de base."""
+    pedido = pedido or {}
+    v = getattr(a, "visual", None) or pedido.get("visual")
+    if v:
+        dados["visual"] = v
+    img = getattr(a, "imagem", None)
+    if img:
+        dados["imagem"] = str(Path(img).expanduser().resolve())
+    elif pedido.get("imagem") and "imagem" not in dados:
+        dados["imagem"] = pedido["imagem"]
+    for d in [dados] + [s for s in dados.get("slides", []) if isinstance(s, dict)]:
+        f = d.get("imagem")
+        if isinstance(f, str) and f.strip() and not Path(f).expanduser().is_absolute():
+            d["imagem"] = str((Path(base) / Path(f).expanduser()).resolve())
+    return dados
+
+
+def gerar_pngs(dados, saida, avisos=None):
     from .render import Recusado, renderizar
+    avisos = [] if avisos is None else avisos
     try:
-        arquivos = renderizar(dados, saida)
+        arquivos = renderizar(dados, saida, avisos=avisos)
     except Recusado as e:
         print(f"\nRecusado: {e}", file=sys.stderr)
         return 1
     print(f"\n{len(arquivos) - 1} slides prontos em {Path(saida).resolve()}")
     for a in arquivos:
         print(f"  {a.name}")
+    if avisos:
+        sys.stdout.flush()
+        print("\nAviso (os slides saíram, mas dá para melhorar):", file=sys.stderr)
+        for v in avisos:
+            print(f"  {P.aviso_viuva(v)}", file=sys.stderr)
     return 0
 
 
-def validar_e_gerar(dados, saida, fonte=None):
+def gravar_aviso(pasta, avisos):
+    """no caminho com IA, o aviso vira o texto pronto para colar na conversa; sem aviso, some o correcao.txt velho."""
+    corr = Path(pasta) / "correcao.txt"
+    if avisos:
+        corr.write_text(P.ajuste_linhas(avisos), encoding="utf-8")
+        print(f"Para ajustar, cole o texto de {corr} na mesma conversa da IA e rode de novo.", file=sys.stderr)
+    elif corr.exists():
+        corr.unlink()
+
+
+def validar_e_gerar(dados, saida, fonte=None, avisos=None):
     regras.normalizar(dados)
     erros = regras.verificar(dados, fonte_dos_numeros=fonte)
     if erros:
@@ -67,7 +101,7 @@ def validar_e_gerar(dados, saida, fonte=None):
     saida = Path(saida)
     saida.mkdir(parents=True, exist_ok=True)
     (saida / "slides.json").write_text(json.dumps(dados, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return gerar_pngs(dados, saida)
+    return gerar_pngs(dados, saida, avisos)
 
 
 def cmd_render(a):
@@ -85,6 +119,8 @@ def cmd_render(a):
         return 1
     if a.arroba:
         dados["arroba"] = a.arroba
+    if isinstance(dados, dict):
+        aplicar_visual(dados, a, arq.parent)
     regras.normalizar(dados)
     erros = regras.verificar(dados)
     if erros:
@@ -102,7 +138,9 @@ def cmd_prompt(a, motivo=None):
     pasta.mkdir(parents=True, exist_ok=True)
     texto = P.montar(a.tema, a.publico, a.slides)
     (pasta / "prompt.txt").write_text(texto, encoding="utf-8")
-    (pasta / PEDIDO).write_text(json.dumps({"tema": a.tema, "publico": a.publico, "arroba": a.arroba, "slides": a.slides},
+    img = str(Path(a.imagem).expanduser().resolve()) if a.imagem else None
+    (pasta / PEDIDO).write_text(json.dumps({"tema": a.tema, "publico": a.publico, "arroba": a.arroba, "slides": a.slides,
+                                            "visual": a.visual, "imagem": img},
                                            ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     resp = pasta / "resposta.txt"
     if motivo:
@@ -137,17 +175,19 @@ def cmd_montar(a):
     arroba = a.arroba or pedido.get("arroba")
     if arroba:
         dados["arroba"] = arroba
+    aplicar_visual(dados, a, arq.parent, pedido)
     fonte = " ".join(x for x in (pedido.get("tema"), pedido.get("publico")) if x) if pedido else None
     if fonte is None:
         print(f"(sem {PEDIDO} ao lado da resposta: a regra do número com fonte não foi conferida)")
-    r = validar_e_gerar(dados, a.saida or arq.parent, fonte)
+    avisos = []
+    r = validar_e_gerar(dados, a.saida or arq.parent, fonte, avisos)
     corr = arq.parent / "correcao.txt"
     if isinstance(r, list):
         corr.write_text(P.correcao(r), encoding="utf-8")
         print(f"\nCole o texto de {corr} na mesma conversa da IA, salve a nova resposta em {arq} e rode de novo.", file=sys.stderr)
         return 1
-    if r == 0 and corr.exists():
-        corr.unlink()
+    if r == 0:
+        gravar_aviso(arq.parent, avisos)
     return r
 
 
@@ -162,7 +202,11 @@ def cmd_tema(a):
         return 1
     if a.arroba:
         dados["arroba"] = a.arroba
-    r = validar_e_gerar(dados, pasta, " ".join(x for x in (a.tema, a.publico) if x))
+    aplicar_visual(dados, a, Path.cwd())
+    avisos = []
+    r = validar_e_gerar(dados, pasta, " ".join(x for x in (a.tema, a.publico) if x), avisos)
+    if r == 0:
+        gravar_aviso(pasta, avisos)
     return 1 if isinstance(r, list) else r
 
 
@@ -183,6 +227,11 @@ def main(argv=None):
         p.add_argument("--slides", type=int, default=7, choices=range(regras.SLIDES_MIN, regras.SLIDES_MAX + 1), metavar="N",
                        help=f"quantos slides, de {regras.SLIDES_MIN} a {regras.SLIDES_MAX} (padrão 7)")
         p.add_argument("--saida", help="pasta de saída (padrão: saida/<tema>)")
+        visual_args(p)
+
+    def visual_args(p):
+        p.add_argument("--visual", choices=visual.VISUAIS, help="modelo dos slides: " + ", ".join(visual.VISUAIS) + " (padrão: escuro)")
+        p.add_argument("--imagem", help="foto de fundo para todos os slides (visual imagem)")
 
     p = sub.add_parser("tema", help="gera o carrossel a partir do tema (com chave da OpenAI ou da Anthropic, num comando só)")
     tema_args(p)
@@ -198,12 +247,14 @@ def main(argv=None):
     p.add_argument("resposta", help="arquivo com a resposta da IA")
     p.add_argument("--arroba", help="seu @ (se não foi dado no prompt)")
     p.add_argument("--saida", help="pasta de saída (padrão: a pasta da resposta)")
+    visual_args(p)
     p.set_defaults(f=cmd_montar)
 
     p = sub.add_parser("render", help="gera os PNGs de um slides.json escrito por você")
     p.add_argument("arquivo", help="o slides.json")
     p.add_argument("--arroba", help="seu @ (substitui o do arquivo)")
     p.add_argument("--saida", help="pasta de saída (padrão: saida/<nome do arquivo>)")
+    visual_args(p)
     p.set_defaults(f=cmd_render)
 
     p = sub.add_parser("regras", help="mostra as regras que todo carrossel cumpre")

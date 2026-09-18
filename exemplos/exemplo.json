@@ -4,33 +4,33 @@
   "slides": [
     {
       "tipo": "capa",
-      "titulo": "Seu carrossel morre no *primeiro* slide",
-      "texto": "e o problema não é o design"
+      "titulo": "Seu carrossel morre no *primeiro* slide e ninguém chega no segundo",
+      "texto": "e o culpado não é a cor nem a fonte"
     },
     {
       "tipo": "miolo",
-      "titulo": "A capa entrega tudo",
-      "texto": "Se a resposta já está no primeiro slide, ninguém tem motivo pra arrastar. A capa abre a pergunta, o resto responde."
+      "titulo": "A capa entrega a resposta antes da *pergunta*",
+      "texto": "Se o primeiro slide já conta o final, ninguém arrasta. A capa abre a dúvida e o resto responde aos poucos."
     },
     {
       "tipo": "miolo",
-      "titulo": "Parágrafo longo vira *parede*",
-      "texto": "No celular, texto corrido cansa antes do segundo slide. Uma ideia por slide e frase curta."
+      "titulo": "Parágrafo comprido vira *parede* na tela do celular",
+      "texto": "Texto corrido cansa antes do segundo slide. Use uma ideia por slide, frase curta e uma pausa pro olho descansar."
     },
     {
       "tipo": "miolo",
-      "titulo": "Cada slide puxa o próximo",
-      "texto": "Termine o slide com algo em aberto. Quem lê quer saber o que vem depois e arrasta sozinho."
+      "titulo": "Cada slide termina com um gancho pro *próximo*",
+      "texto": "Feche cada slide com algo em aberto, uma pergunta ou promessa. Quem lê quer saber o que vem depois e arrasta sozinho."
     },
     {
       "tipo": "miolo",
-      "titulo": "O pedido vai no *final*",
-      "texto": "Pedir comentário no meio corta a leitura. Guarde o pedido pro último slide, curto e claro."
+      "titulo": "O pedido fica guardado para o *último* slide",
+      "texto": "Pedir comentário no meio corta a leitura de quem estava gostando. No fim, um pedido só, curto e claro."
     },
     {
       "tipo": "final",
-      "titulo": "Agora é só testar no próximo post.",
-      "pedido": "Salva esse post pra usar no próximo carrossel"
+      "titulo": "Agora é testar no próximo post e ver quem arrasta até o fim.",
+      "pedido": "Salva esse post pra consultar antes de montar o próximo carrossel"
     }
   ]
 }
