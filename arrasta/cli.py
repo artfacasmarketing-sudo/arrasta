@@ -1,5 +1,6 @@
 """arrasta: escreva o tema, saia com o carrossel pronto pra postar."""
 import argparse
+import codecs
 import json
 import re
 import sys
@@ -11,6 +12,23 @@ from . import prompt as P
 from . import ia, regras, resposta
 
 PEDIDO = "pedido.json"
+# nomes que o Windows não aceita como pasta
+RESERVADOS = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
+
+
+class ArquivoIlegivel(Exception):
+    pass
+
+
+def ler_texto(arq):
+    """lê o arquivo como o editor gravou: UTF-8 com ou sem BOM, ou UTF-16 (Bloco de Notas e PowerShell antigos)."""
+    b = Path(arq).read_bytes()
+    if b.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        return b.decode("utf-16")
+    try:
+        return b.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise ArquivoIlegivel(f"{arq} não está em UTF-8. Abra no editor, salve de novo escolhendo a codificação UTF-8 e rode de novo")
 
 
 def slug(s):
@@ -18,7 +36,7 @@ def slug(s):
     s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
     if len(s) > 40:
         s = s[:41].rsplit("-", 1)[0] if "-" in s[:41] else s[:40]
-    return s or "carrossel"
+    return f"{s}-carrossel" if s in RESERVADOS else s or "carrossel"
 
 
 def mostrar_erros(erros):
@@ -58,7 +76,10 @@ def cmd_render(a):
         print(f"Arquivo não encontrado: {arq}", file=sys.stderr)
         return 2
     try:
-        dados = json.loads(arq.read_text(encoding="utf-8"))
+        dados = json.loads(ler_texto(arq))
+    except ArquivoIlegivel as e:
+        print(e, file=sys.stderr)
+        return 1
     except json.JSONDecodeError as e:
         print(f"{arq} não é um JSON válido (linha {e.lineno}, coluna {e.colno}): {e.msg}", file=sys.stderr)
         return 1
@@ -106,7 +127,10 @@ def cmd_montar(a):
     if (arq.parent / PEDIDO).exists():
         pedido = json.loads((arq.parent / PEDIDO).read_text(encoding="utf-8"))
     try:
-        dados = resposta.extrair(arq.read_text(encoding="utf-8"))
+        dados = resposta.extrair(ler_texto(arq))
+    except ArquivoIlegivel as e:
+        print(e, file=sys.stderr)
+        return 1
     except resposta.RespostaInvalida as e:
         print(f"Não deu para ler a resposta: {e}", file=sys.stderr)
         return 1
@@ -143,6 +167,11 @@ def cmd_tema(a):
 
 
 def main(argv=None):
+    # no Windows, com a saída indo para pipe ou arquivo (Git Bash, redirecionamento), o Python usa cp1252 e
+    # quebra em qualquer caractere fora dela; o arrasta escreve sempre em UTF-8
+    for s in (sys.stdout, sys.stderr):
+        if (s.encoding or "").lower().replace("-", "") != "utf8" and hasattr(s, "reconfigure"):
+            s.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(prog="arrasta", description="Escreva o tema, saia com o carrossel pronto pra postar.")
     ap.add_argument("--versao", action="version", version=f"arrasta {__version__}")
     sub = ap.add_subparsers(dest="cmd", metavar="comando")
@@ -184,6 +213,9 @@ def main(argv=None):
     if not a.cmd:
         ap.print_help()
         return 2
+    # no PowerShell, @nome sem aspas some da linha de comando; quem digita sem o @ também é atendido
+    if getattr(a, "arroba", None) and not a.arroba.startswith("@"):
+        a.arroba = "@" + a.arroba
     return a.f(a)
 
 

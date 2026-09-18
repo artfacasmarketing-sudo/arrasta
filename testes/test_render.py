@@ -61,3 +61,14 @@ def test_fonte_que_nao_carrega_e_recusada(tmp_path, monkeypatch):
     monkeypatch.setattr(render, "MODELO", modelo)
     with pytest.raises(render.Recusado, match="fonte não carregou"):
         render.renderizar(ex(), tmp_path / "saida")
+
+
+def test_molde_com_letra_fora_da_fonte_e_recusado(tmp_path, monkeypatch):
+    """a seta da capa era "→", que a Inter embutida não tem: cada sistema desenhava com a fonte dele."""
+    modelo = tmp_path / "modelo"
+    shutil.copytree(render.MODELO, modelo)
+    html = modelo / "slide.html"
+    html.write_text(html.read_text(encoding="utf-8").replace(">arrasta<svg", ">arrasta →<svg"), encoding="utf-8")
+    monkeypatch.setattr(render, "MODELO", modelo)
+    with pytest.raises(render.Recusado, match="U\\+2192"):
+        render.renderizar(ex(), tmp_path / "saida")

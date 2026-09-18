@@ -62,6 +62,7 @@ def renderizar(dados, saida, previa=True):
     if faltam:
         raise Recusado("caractere que a fonte não tem: " + "; ".join(faltam))
 
+    cmap = _mapa_de_caracteres()
     imagens = []
     with sync_playwright() as pw:
         try:
@@ -69,6 +70,9 @@ def renderizar(dados, saida, previa=True):
         except Exception as e:
             if "Executable doesn't exist" in str(e):
                 raise Recusado("o navegador que desenha os slides não está instalado. Rode: playwright install --only-shell chromium")
+            if "shared libraries" in str(e) or "missing dependencies" in str(e):
+                raise Recusado("faltam no Linux as bibliotecas que o navegador usa. Rode: "
+                               "playwright install --with-deps --only-shell chromium (vai pedir a senha de administrador)")
             raise
         try:
             pag = nav.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
@@ -91,6 +95,9 @@ def renderizar(dados, saida, previa=True):
                 for c in m["filhos"]:
                     if c["sw"] > c["cw"] + 1:
                         problemas.append(f"uma palavra do {c['id']} é mais larga que a caixa; troque por uma mais curta")
+                fora = sorted({ch for ch in m["texto"] if not ch.isspace() and ord(ch) not in cmap})
+                if fora:
+                    problemas.append("o molde escreve letra que a fonte embutida não tem: " + " ".join(f"U+{ord(ch):04X}" for ch in fora))
                 if m["canvas"] != [W, H]:
                     problemas.append(f"canvas {m['canvas']}, esperado {W}x{H}")
                 if problemas:
@@ -101,17 +108,21 @@ def renderizar(dados, saida, previa=True):
 
     # só depois de todos passarem: limpa os PNG de uma rodada anterior e grava os novos
     saida.mkdir(parents=True, exist_ok=True)
-    for velho in saida.iterdir():
-        if NOME_PNG.match(velho.name) or velho.name == "previa.png":
-            velho.unlink()
-    gravados = []
-    for i, png in enumerate(imagens, 1):
-        p = saida / f"{i:02d}.png"
-        p.write_bytes(png)
-        with Image.open(p) as im:
-            if im.size != (W, H):
-                raise Recusado(f"{p.name} saiu com {im.size}, esperado {W}x{H}")
-        gravados.append(p)
+    try:
+        for velho in saida.iterdir():
+            if NOME_PNG.match(velho.name) or velho.name == "previa.png":
+                velho.unlink()
+        gravados = []
+        for i, png in enumerate(imagens, 1):
+            p = saida / f"{i:02d}.png"
+            p.write_bytes(png)
+            with Image.open(p) as im:
+                if im.size != (W, H):
+                    raise Recusado(f"{p.name} saiu com {im.size}, esperado {W}x{H}")
+            gravados.append(p)
+    except PermissionError as e:
+        # no Windows, PNG aberto em outro programa fica travado
+        raise Recusado(f"sem permissão para gravar {e.filename}. Se ele estiver aberto em outro programa, feche e rode de novo")
     no_disco = sorted(x for x in saida.iterdir() if NOME_PNG.match(x.name))
     if len(no_disco) != n:
         raise Recusado(f"{n} slides no arquivo, {len(no_disco)} PNG na pasta")

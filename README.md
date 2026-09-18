@@ -10,10 +10,10 @@ Esse aí em cima saiu de [`exemplos/exemplo.json`](exemplos/exemplo.json) com um
 
 **O que você precisa ter**
 
-- Um Mac e internet na hora de instalar. O arrasta foi testado no Mac; Windows e Linux ainda não foram testados.
-- Python 3.12 ou mais novo. Para conferir, rode `python3 --version`. Se não tiver, baixe em [python.org](https://www.python.org/downloads/).
+- Mac, Windows 10 ou 11, ou Linux (Ubuntu 24.04 ou mais novo, Debian 13 ou mais novo), e internet na hora de instalar. A instalação foi testada do zero no Mac e no Linux (Ubuntu 24.04 e Debian 13). No Windows ainda não rodou numa máquina de verdade.
+- Python 3.12 ou mais novo. Para conferir, rode `python3 --version` (no Windows, `py --version`). Se não tiver, baixe em [python.org](https://www.python.org/downloads/). No Ubuntu 24.04 e no Debian 13 ele já vem instalado.
 - Git, para baixar o arrasta ([git-scm.com](https://git-scm.com/downloads)).
-- Cerca de 500 MB livres. A maior parte é o navegador (o Chromium) que o arrasta usa só para desenhar os slides.
+- Cerca de 500 MB livres (no Linux, até 1,1 GB, porque instala também as bibliotecas do sistema que o navegador usa). A maior parte é o navegador (o Chromium) que o arrasta usa só para desenhar os slides.
 
 **A ferramenta é grátis. A IA é sua.**
 
@@ -38,7 +38,11 @@ arrasta render exemplos/exemplo.json
 
 ## Instalar
 
-No terminal, um comando por vez:
+Abra o terminal e rode, um comando por vez, o bloco do seu sistema.
+
+### Mac
+
+No app Terminal:
 
 ```
 git clone https://github.com/artfacasmarketing-sudo/arrasta.git
@@ -49,6 +53,38 @@ pip install -e .
 playwright install --only-shell chromium
 ```
 
+### Windows
+
+No PowerShell (é o que abre quando você procura "Terminal" no menu Iniciar):
+
+```
+git clone https://github.com/artfacasmarketing-sudo/arrasta.git
+cd arrasta
+py -m venv .venv
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+.venv\Scripts\Activate.ps1
+pip install -e .
+playwright install --only-shell chromium
+```
+
+A linha do `Set-ExecutionPolicy` libera o PowerShell para ativar o ambiente do arrasta. Só precisa uma vez.
+
+### Linux (Ubuntu e Debian)
+
+No terminal. Os dois comandos com `sudo` pedem a sua senha: o primeiro instala o Git e o pacote que cria o ambiente do Python, o último instala as bibliotecas do sistema que o navegador usa.
+
+```
+sudo apt install -y git python3-venv
+git clone https://github.com/artfacasmarketing-sudo/arrasta.git
+cd arrasta
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+playwright install --with-deps --only-shell chromium
+```
+
+### Depois de instalar
+
 Pronto. Rode o primeiro comando:
 
 ```
@@ -57,14 +93,14 @@ arrasta render exemplos/exemplo.json
 
 e abra `saida/exemplo/previa.png`.
 
-Da próxima vez que abrir o terminal, entre na pasta e ative o ambiente antes de usar: `cd arrasta` e `source .venv/bin/activate`.
+Da próxima vez que abrir o terminal, entre na pasta e ative o ambiente antes de usar: `cd arrasta` e depois `source .venv/bin/activate` (no Windows, `.venv\Scripts\Activate.ps1`).
 
 ## Seu carrossel
 
 ### Sem chave (grátis)
 
 ```
-arrasta tema "por que o cliente some depois do orçamento" --arroba @seuperfil
+arrasta tema "por que o cliente some depois do orçamento" --arroba "@seuperfil"
 ```
 
 O arrasta mostra o prompt e diz o que fazer:
@@ -78,17 +114,28 @@ Se a resposta quebrar alguma regra, o arrasta mostra qual e escreve em `correcao
 
 ### Com a sua chave da OpenAI ou da Anthropic (um comando)
 
-Guarde a chave no terminal (ela fica só no seu computador). Use a linha da empresa da sua chave:
+Guarde a chave no terminal (ela fica só no seu computador). Use a linha da empresa da sua chave.
+
+No Mac e no Linux:
 
 ```
 export OPENAI_API_KEY=sua-chave
 export ANTHROPIC_API_KEY=sua-chave
 ```
 
+No Windows (PowerShell):
+
+```
+$env:OPENAI_API_KEY="sua-chave"
+$env:ANTHROPIC_API_KEY="sua-chave"
+```
+
+A chave vale até fechar o terminal. Na próxima vez, guarde de novo.
+
 Depois é um comando só:
 
 ```
-arrasta tema "por que o cliente some depois do orçamento" --arroba @seuperfil
+arrasta tema "por que o cliente some depois do orçamento" --arroba "@seuperfil"
 ```
 
 O arrasta pede o texto à IA, confere as regras, pede correção se precisar (até 3 vezes) e grava os PNGs em `saida/<tema>/`.
@@ -106,7 +153,7 @@ Para gastar menos, escolha um modelo menor com `--modelo`, por exemplo `--modelo
 
 | opção | para quê |
 |---|---|
-| `--arroba @seuperfil` | seu @ no topo de cada slide |
+| `--arroba "@seuperfil"` | seu @ no topo de cada slide (com aspas: no PowerShell, `@` sem aspas some do comando) |
 | `--publico "casais montando o primeiro apartamento"` | pra quem é o carrossel; a IA escreve pensando nessa pessoa |
 | `--slides 8` | quantos slides, de 5 a 10 (padrão 7) |
 | `--saida pasta` | outra pasta de saída |

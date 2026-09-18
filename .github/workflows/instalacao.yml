@@ -1,0 +1,53 @@
+# Instala o arrasta seguindo o bloco do README de cada sistema, gera o carrossel de exemplo e roda os testes.
+# O git clone e o cd do README ficam de fora: a checkout já baixou esta versão.
+name: instalação nos 3 sistemas
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  readme:
+    name: ${{ matrix.so }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {so: Mac, runner: macos-latest}
+          - {so: Linux, runner: ubuntu-24.04}
+          - {so: Windows, runner: windows-latest}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: instala pelo README (Mac e Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -eo pipefail
+          [ "$RUNNER_OS" = Linux ] && sudo apt-get update -qq
+          python3 testes/bloco_do_readme.py "${{ matrix.so }}" | grep -vE '^(git clone|cd arrasta)' > "$RUNNER_TEMP/bloco.sh"
+          cat "$RUNNER_TEMP/bloco.sh"
+          source "$RUNNER_TEMP/bloco.sh"
+          arrasta render exemplos/exemplo.json
+          python -c "import glob,sys; n=len(glob.glob('saida/exemplo/[0-9][0-9].png')); print(n, 'PNG'); sys.exit(n != 6)"
+          pip install -q -e ".[testes]"
+          pytest -q
+
+      - name: instala pelo README (Windows, PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bloco = python testes/bloco_do_readme.py Windows | Where-Object { $_ -notmatch '^(git clone|cd arrasta)' }
+          foreach ($linha in $bloco) {
+            Write-Host "> $linha"
+            Invoke-Expression $linha
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          arrasta render exemplos/exemplo.json
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -c "import glob,sys; n=len(glob.glob('saida/exemplo/[0-9][0-9].png')); print(n, 'PNG'); sys.exit(n != 6)"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pip install -q -e ".[testes]"
+          pytest -q

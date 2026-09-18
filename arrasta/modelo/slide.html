@@ -62,7 +62,9 @@ body {
 .arrasta {
   position: absolute; right: var(--margem); bottom: 128px;
   font-size: 32px; font-weight: 650; color: var(--texto); letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 12px;
 }
+.arrasta svg { width: 34px; height: 34px; }
 </style>
 </head>
 <body>
@@ -86,7 +88,9 @@ function montar(s, meta) {
   if (s.texto) h += '<p class="' + (s.papel === "capa" ? "apoio" : "texto") + '" data-id="texto">' + marcas(s.texto) + '</p>';
   if (s.pedido) h += '<p class="pedido" data-id="pedido">' + marcas(s.pedido) + '</p>';
   h += '</div>';
-  if (s.papel === "capa") h += '<div class="arrasta" data-id="dica">arrasta →</div>';
+  // a seta é desenho, não letra: a fonte embutida não tem "→" e cada sistema desenharia com a fonte dele
+  if (s.papel === "capa") h += '<div class="arrasta" data-id="dica">arrasta<svg viewBox="0 0 24 24" aria-hidden="true">'
+        + '<path d="M3 12h17M13 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
   h += '<div class="trilho"><i style="width:' + (100 * meta.i / meta.n).toFixed(2) + '%"></i></div>';
   document.body.innerHTML = h;
 }
@@ -118,6 +122,7 @@ async function medir() {
     filhos: filhos,
     fontes: fontes,
     canvas: [window.innerWidth, window.innerHeight],
+    texto: document.body.innerText,
   };
 }
 </script>
