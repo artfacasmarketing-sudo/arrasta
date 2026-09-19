@@ -119,9 +119,9 @@ def pegada(fundo, com_texto, e):
     Devolve None se não achou tinta nenhuma: aí o instrumento não viu o texto e a conferência não vale."""
     from PIL import ImageChops
     x0, y0, x1, y1 = e["caixa"]
-    folga = e["vao"] + e["fs"]  # acento e perna de letra passam um pouco da caixa da linha
-    area = (max(0, math.floor(x0 - folga)), max(0, math.floor(y0 - folga)),
-            min(fundo.width, math.ceil(x1 + folga)), min(fundo.height, math.ceil(y1 + folga)))
+    fe, fc, fd, fb = e["folga"]  # o máximo que uma letra pinta fora da caixa do elemento, pela fonte
+    area = (max(0, math.floor(x0 - fe)), max(0, math.floor(y0 - fc)),
+            min(fundo.width, math.ceil(x1 + fd)), min(fundo.height, math.ceil(y1 + fb)))
     dif = ImageChops.difference(fundo.crop(area), com_texto.crop(area)).convert("L").point(lambda v: 255 if v > LIMIAR_TINTA else 0)
     caixa = dif.getbbox()
     if not caixa:

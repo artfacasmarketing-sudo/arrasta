@@ -3,6 +3,9 @@
 
 // métricas da Inter embutida (unitsPerEm 2048): subida 1984, descida 494, altura de maiúscula 1490
 const SUBIDA = 1984 / 2048, DESCIDA = 494 / 2048, MAIUSCULA = 1490 / 2048;
+// até onde uma letra pinta fora da área da fonte (tabela head dos dois woff2): yMax 2269 (acento empilhado),
+// yMin -546 e xMin -400
+const PASSA_CIMA = (2269 - 1984) / 2048, PASSA_BAIXO = (546 - 494) / 2048, PASSA_LADO = 400 / 2048;
 
 function esc(s) {
   return s.replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -90,8 +93,12 @@ function elementos() {
     const cs = getComputedStyle(el), fs = parseFloat(cs.fontSize);
     const lh = cs.lineHeight === "normal" ? (SUBIDA + DESCIDA) * fs : parseFloat(cs.lineHeight);
     const r = el.getBoundingClientRect();
+    // folga: quanto a tinta pode sair da caixa do elemento. A área da fonte passa da linha quando a entrelinha é menor
+    // que ela, e a letra passa da área da fonte no máximo o que a própria fonte diz
+    const sobra = Math.max(0, ((SUBIDA + DESCIDA) * fs - lh) / 2);
     return {i, id: el.dataset.id, texto: el.textContent.trim() !== "", fs, vao: lh - MAIUSCULA * fs, fundo: temFundo(el),
-            caixa: [r.left, r.top, r.right, r.bottom]};
+            caixa: [r.left, r.top, r.right, r.bottom],
+            folga: [PASSA_LADO * fs, sobra + PASSA_CIMA * fs, PASSA_LADO * fs, sobra + PASSA_BAIXO * fs]};
   }).filter(e => e.texto);
 }
 
