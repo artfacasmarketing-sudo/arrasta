@@ -30,7 +30,17 @@ COR_CSS = re.compile(r"rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\
 
 
 class Recusado(Exception):
-    """o carrossel não passou numa conferência; a mensagem diz qual e onde."""
+    """o carrossel não passou numa conferência; a mensagem diz qual e onde.
+
+    para_ia: o que o texto pode resolver (não coube, textos encostados), como (regra, onde, o que fazer), no formato
+    das regras, para virar o correcao.txt. Fica vazio quando o problema não é de texto (foto, navegador, cor)."""
+
+    def __init__(self, msg, para_ia=()):
+        super().__init__(msg)
+        self.para_ia = list(para_ia)
+
+
+CAMPO = {"titulo": "o título", "texto": "o texto", "pedido": "o pedido", "arroba": "o @"}
 
 
 def _mapa_de_caracteres():
@@ -190,7 +200,7 @@ def renderizar(dados, saida, previa=True, base=None, medidas=None, vaos=None, av
                         "imagem": fotos[i - 1].as_uri() if fotos[i - 1] else ""}
                 pag.evaluate("([s, m]) => montar(s, m)", [dict(s, papel=_papel(i, n)), meta])
                 m = pag.evaluate("async () => await medir()")
-                problemas = []
+                problemas, para_ia = [], []
                 for f in m["fontes"]:
                     if f["faces"] == 0 or f["carregadas"] < f["faces"] or not f["familia"]:
                         problemas.append(f"fonte não carregou em {f['id']}")
@@ -205,16 +215,20 @@ def renderizar(dados, saida, previa=True, base=None, medidas=None, vaos=None, av
                     if topo < z["top"] - 0.5 or fundo > z["bottom"] + 0.5:
                         excesso = round(max(z["top"] - topo, 0) + max(fundo - z["bottom"], 0))
                         problemas.append(f"o texto passa {excesso} px da caixa; encurte o slide")
+                        campos = " ou ".join(dict.fromkeys(CAMPO.get(c["id"], c["id"]) for c in z["filhos"]))
+                        para_ia.append(("cabe na caixa", f"slide {i}", f"o texto passa {excesso} px do espaço do slide; encurte {campos}"))
                     for c in z["filhos"]:
                         if c["sw"] > c["cw"] + 1 or c["left"] < z["left"] - 0.5 or c["right"] > z["right"] + 0.5:
                             problemas.append(f"uma palavra do {c['id']} é mais larga que a caixa; troque por uma mais curta")
+                            campo = CAMPO.get(c["id"], c["id"]).replace("o ", "do ", 1)
+                            para_ia.append(("cabe na caixa", f"slide {i}", f"uma palavra {campo} é mais larga que o slide; troque por uma mais curta"))
                 fora = sorted({ch for ch in m["texto"] if not ch.isspace() and ord(ch) not in cmap})
                 if fora:
                     problemas.append("o molde escreve letra que a fonte embutida não tem: " + " ".join(f"U+{ord(ch):04X}" for ch in fora))
                 if m["canvas"] != [W, H]:
                     problemas.append(f"canvas {m['canvas']}, esperado {W}x{H}")
                 if problemas:
-                    raise Recusado(f"slide {i}: " + "; ".join(problemas))
+                    raise Recusado(f"slide {i}: " + "; ".join(problemas), para_ia)
                 png = pag.screenshot(clip={"x": 0, "y": 0, "width": W, "height": H}, type="png")
                 foto = lambda: Image.open(io.BytesIO(pag.screenshot(clip={"x": 0, "y": 0, "width": W, "height": H}, type="png"))).convert("RGB")
                 pag.evaluate("async () => await esconderTexto()")
@@ -247,7 +261,9 @@ def renderizar(dados, saida, previa=True, base=None, medidas=None, vaos=None, av
                 perto = [c for c in colisoes(pegadas) if c["vao"] < c["minimo"]]
                 if perto:
                     raise Recusado(f"slide {i}: textos encostados: " + "; ".join(
-                        f"{c['a']} e {c['b']} a {c['vao']} px (mínimo {c['minimo']} px, o vão entre as linhas deles)" for c in perto))
+                        f"{c['a']} e {c['b']} a {c['vao']} px (mínimo {c['minimo']} px, o vão entre as linhas deles)" for c in perto),
+                        [("textos encostados", f"slide {i}", f"{CAMPO.get(c['a'], c['a'])} e {CAMPO.get(c['b'], c['b'])} ficaram colados; encurte um dos dois")
+                         for c in perto])
                 if medidas is not None:
                     medidas.extend(dict(c, slide=i) for c in medido)
                 if vaos is not None:

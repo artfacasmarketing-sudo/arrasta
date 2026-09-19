@@ -63,13 +63,16 @@ def aplicar_visual(dados, a, base, pedido=None):
     return dados
 
 
-def gerar_pngs(dados, saida, avisos=None):
+def gerar_pngs(dados, saida, avisos=None, recusa=None):
+    """recusa: se for uma lista, recebe o que o texto pode resolver quando o render recusa (para o correcao.txt)."""
     from .render import Recusado, renderizar
     avisos = [] if avisos is None else avisos
     try:
         arquivos = renderizar(dados, saida, avisos=avisos)
     except Recusado as e:
         print(f"\nRecusado: {e}", file=sys.stderr)
+        if recusa is not None:
+            recusa.extend(e.para_ia)
         return 1
     print(f"\n{len(arquivos) - 1} slides prontos em {Path(saida).resolve()}")
     for a in arquivos:
@@ -92,7 +95,7 @@ def gravar_aviso(pasta, avisos):
         corr.unlink()
 
 
-def validar_e_gerar(dados, saida, fonte=None, avisos=None):
+def validar_e_gerar(dados, saida, fonte=None, avisos=None, recusa=None):
     regras.normalizar(dados)
     erros = regras.verificar(dados, fonte_dos_numeros=fonte)
     if erros:
@@ -101,7 +104,7 @@ def validar_e_gerar(dados, saida, fonte=None, avisos=None):
     saida = Path(saida)
     saida.mkdir(parents=True, exist_ok=True)
     (saida / "slides.json").write_text(json.dumps(dados, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return gerar_pngs(dados, saida, avisos)
+    return gerar_pngs(dados, saida, avisos, recusa)
 
 
 def cmd_render(a):
@@ -179,11 +182,13 @@ def cmd_montar(a):
     fonte = " ".join(x for x in (pedido.get("tema"), pedido.get("publico")) if x) if pedido else None
     if fonte is None:
         print(f"(sem {PEDIDO} ao lado da resposta: a regra do número com fonte não foi conferida)")
-    avisos = []
-    r = validar_e_gerar(dados, a.saida or arq.parent, fonte, avisos)
+    avisos, recusa = [], []
+    r = validar_e_gerar(dados, a.saida or arq.parent, fonte, avisos, recusa)
     corr = arq.parent / "correcao.txt"
-    if isinstance(r, list):
-        corr.write_text(P.correcao(r), encoding="utf-8")
+    # regra quebrada, ou slide recusado no desenho por algo que o texto resolve (não coube, textos encostados):
+    # os dois viram o mesmo correcao.txt, pronto para colar na conversa da IA
+    if isinstance(r, list) or recusa:
+        corr.write_text(P.correcao(r if isinstance(r, list) else recusa), encoding="utf-8")
         print(f"\nCole o texto de {corr} na mesma conversa da IA, salve a nova resposta em {arq} e rode de novo.", file=sys.stderr)
         return 1
     if r == 0:
