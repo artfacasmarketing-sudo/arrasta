@@ -112,6 +112,17 @@ O arrasta mostra o prompt e diz o que fazer:
 
 Se a resposta quebrar alguma regra, o arrasta mostra qual e escreve em `correcao.txt` o texto para você colar na mesma conversa da IA. Salve a nova resposta no mesmo `resposta.txt` e rode o passo 4 de novo.
 
+### Com Claude Code ou Codex
+
+Se você usa o Claude Code ou o Codex, ele mesmo escreve o texto, pelo seu plano, sem chave de API. Abra na pasta do arrasta:
+
+```
+claude "/carrossel por que o cliente some depois do orçamento --arroba @seuperfil"
+codex --sandbox danger-full-access "faz um carrossel sobre por que o cliente some depois do orçamento para @seuperfil"
+```
+
+O agente segue o mesmo caminho sem chave (prompt, resposta, montar, correção, até 3 vezes) e mostra a prévia. No Codex, o `--sandbox danger-full-access` é preciso porque o navegador que desenha os slides não abre dentro do sandbox dele.
+
 ### Com a sua chave da OpenAI ou da Anthropic (um comando)
 
 Guarde a chave no terminal (ela fica só no seu computador). Use a linha da empresa da sua chave.
