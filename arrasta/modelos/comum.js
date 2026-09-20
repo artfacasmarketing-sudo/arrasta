@@ -102,6 +102,61 @@ function elementos() {
   }).filter(e => e.texto);
 }
 
+// as palavras de um texto, com a posição de cada uma. Palavra partida pelo *destaque* vira uma só:
+// dois pedaços que se encostam na mesma linha (menos de 2 px entre eles) são a mesma palavra.
+function palavrasDe(el) {
+  const brutas = [];
+  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    const re = /\S+/g; let m;
+    while ((m = re.exec(n.textContent))) {
+      const r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
+      const q = r.getBoundingClientRect();
+      if (q.width >= 1) brutas.push({t: m[0], top: Math.round(q.top), l: q.left, r: q.right});
+    }
+  }
+  const out = [];
+  for (const p of brutas) {
+    const a = out.at(-1);
+    if (a && Math.abs(a.top - p.top) < 4 && p.l - a.r < 2) { a.t += p.t; a.r = Math.max(a.r, p.r); }
+    else out.push({...p});
+  }
+  return out;
+}
+
+// onde este texto tem de caber: a caixa marcada com [data-caixa], ou, quando não há nenhuma acima dele
+// (o @ no topo, a dica no pé), a caixa de conteúdo do pai
+function caixaDe(el) {
+  const z = el.closest("[data-caixa]");
+  if (z) { const r = z.getBoundingClientRect(); return {esq: r.left, dir: r.right}; }
+  const p = el.parentElement, cs = getComputedStyle(p), r = p.getBoundingClientRect();
+  return {esq: r.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft),
+          dir: r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight)};
+}
+
+// largura de verdade de cada texto, em px: a linha mais larga contra a caixa dele, e a palavra mais larga com o nome.
+// A contagem de palavras do regras.py não vê isto: uma palavra longa do português no tamanho do título não cabe na
+// largura do slide, e com word-break: normal o Chromium deixa ela vazar em vez de quebrar.
+function larguras() {
+  const out = [];
+  for (const el of document.querySelectorAll("[data-id]")) {
+    if (!el.textContent.trim()) continue;
+    const cs = getComputedStyle(el), cx = caixaDe(el), lin = linhas(el), b = el.getBoundingClientRect();
+    // a caixa do próprio texto: sem a largura de conteúdo (elemento em linha), vale a caixa de fora
+    const cw = el.clientWidth;
+    const conteudo = cw > 0 ? cw - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : cx.dir - cx.esq;
+    const linha = lin.length ? Math.max(...lin.map(q => q.right - q.left)) : 0;
+    let esq = lin.length ? Math.min(...lin.map(q => q.left)) : b.left;
+    let dir = lin.length ? Math.max(...lin.map(q => q.right)) : b.right;
+    if (temFundo(el)) { esq = Math.min(esq, b.left); dir = Math.max(dir, b.right); }  // com fundo, a tinta é a caixa inteira
+    const pal = palavrasDe(el).sort((a, c) => (c.r - c.l) - (a.r - a.l))[0];
+    out.push({id: el.dataset.id, caixa: cx.dir - cx.esq, conteudo, linha,
+              fora: Math.max(linha - conteudo, dir - cx.dir, cx.esq - esq),
+              palavra: pal ? pal.t : "", palavra_larg: pal ? pal.r - pal.l : 0});
+  }
+  return out;
+}
+
 // linha de título ou pedido com uma palavra só (viúva). Palavra partida pelo *destaque* conta como uma.
 function viuvas() {
   const out = [];
@@ -149,15 +204,15 @@ async function medir() {
     fontes.push({id: el.dataset.id, faces: usadas.length, carregadas: usadas.filter(f => f.status === "loaded").length,
                  familia: cs.fontFamily.startsWith('"Inter Arrasta"')});
   }
-  // cada caixa [data-caixa] tem limites; o que está dentro dela ([data-id]) não pode passar deles
+  // cada caixa [data-caixa] tem limite de cima e de baixo; o que está dentro dela ([data-id]) não pode passar deles.
+  // A largura de cada texto é conferida em larguras(), que também alcança o que fica fora de [data-caixa]
   const caixas = [...document.querySelectorAll("[data-caixa]")].map(z => {
     const zr = z.getBoundingClientRect();
-    const lim = {top: zr.top, bottom: zr.bottom, left: zr.left, right: zr.right};
+    const lim = {top: zr.top, bottom: zr.bottom};
     for (const k of ["top", "bottom"]) if (z.dataset[k] !== undefined) lim[k] = parseFloat(z.dataset[k]);
     const filhos = [...z.querySelectorAll("[data-id]")].map(el => {
       const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
-      return {id: el.dataset.id, top: b.top - parseFloat(cs.marginTop), bottom: b.bottom + parseFloat(cs.marginBottom),
-              left: b.left, right: b.right, sw: el.scrollWidth, cw: el.clientWidth};
+      return {id: el.dataset.id, top: b.top - parseFloat(cs.marginTop), bottom: b.bottom + parseFloat(cs.marginBottom)};
     });
     return {id: z.dataset.caixa, ...lim, filhos};
   });
@@ -170,5 +225,6 @@ async function medir() {
     trechos: trechos(),
     elementos: elementos(),
     viuvas: viuvas(),
+    larguras: larguras(),
   };
 }

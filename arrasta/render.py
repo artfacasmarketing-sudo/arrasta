@@ -41,6 +41,8 @@ class Recusado(Exception):
 
 
 CAMPO = {"titulo": "o título", "texto": "o texto", "pedido": "o pedido", "arroba": "o @"}
+# o que a IA escreve, e portanto pode encurtar quando não cabe
+CAMPO_DA_IA = ("titulo", "texto", "pedido")
 
 
 def _mapa_de_caracteres():
@@ -217,11 +219,25 @@ def renderizar(dados, saida, previa=True, base=None, medidas=None, vaos=None, av
                         problemas.append(f"o texto passa {excesso} px da caixa; encurte o slide")
                         campos = " ou ".join(dict.fromkeys(CAMPO.get(c["id"], c["id"]) for c in z["filhos"]))
                         para_ia.append(("cabe na caixa", f"slide {i}", f"o texto passa {excesso} px do espaço do slide; encurte {campos}"))
-                    for c in z["filhos"]:
-                        if c["sw"] > c["cw"] + 1 or c["left"] < z["left"] - 0.5 or c["right"] > z["right"] + 0.5:
-                            problemas.append(f"uma palavra do {c['id']} é mais larga que a caixa; troque por uma mais curta")
-                            campo = CAMPO.get(c["id"], c["id"]).replace("o ", "do ", 1)
-                            para_ia.append(("cabe na caixa", f"slide {i}", f"uma palavra {campo} é mais larga que o slide; troque por uma mais curta"))
+                # largura: a linha mais larga de cada texto contra a caixa dele, medida em px no navegador.
+                # A contagem de palavras do regras.py aprova uma palavra longa que não cabe sozinha na largura
+                # do slide, e o Chromium deixa ela vazar (word-break: normal) em vez de quebrar.
+                for t in m["larguras"]:
+                    if t["fora"] <= 0.5:
+                        continue
+                    passa, campo = round(t["fora"]), CAMPO.get(t["id"], t["id"])
+                    se_estreita = t["palavra_larg"] > t["conteudo"] + 0.5
+                    if se_estreita:
+                        problemas.append(f"a palavra \"{t['palavra']}\" tem {round(t['palavra_larg'])} px e {campo} só tem "
+                                         f"{round(t['conteudo'])} px de largura; passa {passa} px")
+                        conserto = f"a palavra \"{t['palavra']}\" é {passa} px mais larga que {campo}; troque por uma mais curta"
+                    else:
+                        problemas.append(f"{campo} passa {passa} px da largura do slide "
+                                         f"(linha de {round(t['linha'])} px numa caixa de {round(t['caixa'])} px)")
+                        conserto = f"{campo} passa {passa} px da largura do slide; encurte a linha mais longa"
+                    # o @ e o que o molde escreve não saem do texto: aí não há o que a IA corrija
+                    if t["id"] in CAMPO_DA_IA:
+                        para_ia.append(("cabe na caixa", f"slide {i}", conserto))
                 fora = sorted({ch for ch in m["texto"] if not ch.isspace() and ord(ch) not in cmap})
                 if fora:
                     problemas.append("o molde escreve letra que a fonte embutida não tem: " + " ".join(f"U+{ord(ch):04X}" for ch in fora))
