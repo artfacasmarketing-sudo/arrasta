@@ -201,7 +201,10 @@ def cmd_tema(a):
         if ia.provedor(a.ia) is None:
             return cmd_prompt(a, motivo="Sem OPENAI_API_KEY nem ANTHROPIC_API_KEY no ambiente: o arrasta monta o prompt e você cola em qualquer IA.")
         pasta = Path(a.saida or Path("saida") / slug(a.tema))
-        dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia, visual=a.visual)
+        # o visual e a foto são resolvidos ANTES de chamar a IA: as regras que a resposta tem de passar
+        # dependem dos dois, e o laço de correção da IA não tem como adivinhar nenhum deles
+        contexto = aplicar_visual({}, a, Path.cwd())
+        dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia, contexto=contexto)
     except ia.FalhaIA as e:
         print(f"\n{e}", file=sys.stderr)
         return 1

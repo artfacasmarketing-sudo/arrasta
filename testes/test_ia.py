@@ -174,3 +174,23 @@ def test_openai_recusa_e_corte_viram_erro_claro(servidor, monkeypatch, resp, tre
     fila.append(resp())
     with pytest.raises(ia.FalhaIA, match=trecho):
         ia.gerar("tema qualquer", avisar=calar)
+
+
+def test_visual_imagem_nao_trava_o_laco_da_ia(servidor, monkeypatch, tmp_path):
+    """controle positivo da regressão: o visual imagem exige foto, e a foto não vem da IA.
+
+    Se o visual entrar no dados sem a foto junto, toda resposta quebra a regra "pede uma foto", a IA não tem
+    como corrigir e as 3 tentativas queimam. O contexto (visual + foto) entra nas duas pontas ou em nenhuma."""
+    from PIL import Image
+    recebidos, fila = servidor
+    monkeypatch.setenv("OPENAI_API_KEY", "chave-de-teste")
+    foto = tmp_path / "f.jpg"
+    Image.new("RGB", (800, 600), "#123456").save(foto)
+    fila.append(resposta_openai(slides_da_api()))
+
+    dados, tentativas, _, _ = ia.gerar("brindes", contexto={"visual": "imagem", "imagem": str(foto)}, avisar=calar)
+
+    assert tentativas == 1, "a resposta boa foi recusada por uma regra que a IA não escreve"
+    assert dados["visual"] == "imagem" and dados["imagem"] == str(foto)
+    # e o prompt que foi para a IA é o do visual pedido
+    assert "CABE NA TELA" in recebidos[0]["corpo"]["input"][0]["content"]
