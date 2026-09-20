@@ -109,3 +109,15 @@ def test_recusa_que_o_texto_nao_resolve_nao_vai_para_a_ia(tmp_path):
     (tmp_path / "resposta.txt").write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
     assert cli.main(["montar", str(tmp_path / "resposta.txt")]) == 1
     assert not (tmp_path / "correcao.txt").exists()
+
+
+def test_o_prompt_leva_o_limite_de_largura_do_visual_escolhido(tmp_path):
+    """o limite medido tem de chegar na IA, e ser o do visual pedido: no claro a capa aperta de 15 para 12 letras."""
+    from arrasta import largura as L
+    for visual, esperado in (("escuro", L.LIMITE_LETRAS[("escuro", "capa", "titulo")][0]),
+                             ("claro", L.LIMITE_LETRAS[("claro", "capa", "titulo")][0])):
+        pasta = tmp_path / visual
+        assert cli.main(["prompt", "brindes", "--visual", visual, "--saida", str(pasta)]) == 0
+        t = (pasta / "prompt.txt").read_text(encoding="utf-8")
+        assert f"Nenhuma palavra do título da capa pode passar de {esperado} letras" in t
+        assert "CABE NA TELA" in t

@@ -102,3 +102,40 @@ def test_extrai_json_da_resposta_colada(colado):
 def test_resposta_sem_carrossel_e_recusada(colado):
     with pytest.raises(resposta.RespostaInvalida):
         resposta.extrair(colado)
+
+
+def test_palavra_larga_reprova_antes_do_navegador_com_o_numero():
+    """o que a contagem de palavras aprova: uma palavra só, larga demais. Medida na fonte, sem abrir o Chromium."""
+    d = ex()
+    d["slides"][0]["titulo"] = "O jeito surpreendentemente simples"
+    erros = [e for e in regras.verificar(d) if e[0] == "cabe na caixa"]
+    assert len(erros) == 1
+    assert "surpreendentemente" in erros[0][2] and "1025 px" in erros[0][2] and "passa 137 px" in erros[0][2]
+    d["slides"][0]["titulo"] = "O jeito simples de fazer"
+    assert regras.verificar(d) == []
+
+
+def test_o_limite_de_largura_muda_com_o_visual():
+    """a mesma palavra cabe no escuro e não cabe no claro: a caixa e a letra são outras."""
+    d = ex()
+    d["slides"][0]["titulo"] = "O dimensionamento certo"
+    assert [e for e in regras.verificar(d) if e[0] == "cabe na caixa"] == []
+    d["visual"] = "claro"
+    assert [e for e in regras.verificar(d) if e[0] == "cabe na caixa"] != []
+
+
+def test_palavra_com_hifen_nao_reprova():
+    """o navegador quebra a linha depois do hífen; medido inteiro o composto dá 1.621 px e seria recusado,
+    mas cada pedaço cabe nos 888 px do título (878,5 e 742,5)."""
+    d = ex()
+    d["slides"][0]["titulo"] = "A palavra responsabilidade-socioambiental"
+    assert [e for e in regras.verificar(d) if e[0] == "cabe na caixa"] == []
+
+
+def test_destaque_nao_entra_na_conta_da_largura():
+    """os asteriscos do *destaque* não são letra; e a palavra partida por eles continua sendo uma palavra."""
+    d = ex()
+    d["slides"][0]["titulo"] = "O jeito *simples* de fazer"
+    assert regras.verificar(d) == []
+    d["slides"][0]["titulo"] = "O jeito surpreen*dentemente* simples"
+    assert [e for e in regras.verificar(d) if e[0] == "cabe na caixa"] != []

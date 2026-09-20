@@ -1,5 +1,25 @@
 """O prompt que vai para a IA. As regras aqui são as mesmas que o regras.py confere depois."""
+from . import largura as L
 from . import regras as R
+
+CAMPOS = (("capa", "titulo", "título da capa"), ("capa", "texto", "texto de apoio da capa"),
+          ("miolo", "titulo", "título do miolo"), ("miolo", "texto", "texto do miolo"),
+          ("final", "titulo", "título do último slide"), ("final", "pedido", "pedido"))
+
+
+def cabe_na_tela(visual):
+    """o que foi MEDIDO na fonte sobre a largura do slide, em letras e em caracteres por linha.
+
+    O limite de letras só aparece onde ele prende de verdade (onde alguma palavra do português não cabe).
+    Aqui é orientação; quem recusa é o regras.py, que mede palavra por palavra."""
+    limites = [f"- Nenhuma palavra do {nome} pode passar de {L.LIMITE_LETRAS[(visual, papel, campo)][0]} letras: "
+               f"mais que isso não cabe na largura do slide e o carrossel é recusado."
+               for papel, campo, nome in CAMPOS if (visual, papel, campo) in L.LIMITE_LETRAS]
+    porlinha = ", ".join(f"{nome} {L.POR_LINHA[(visual, papel, campo)]}"
+                         for papel, campo, nome in CAMPOS if (visual, papel, campo) in L.POR_LINHA)
+    return "\n".join(["", "CABE NA TELA (medido na fonte do arrasta, não é estimativa)", *limites,
+                       f"- Cabem por linha, mais ou menos: {porlinha} caracteres.",
+                       "- Palavra que não cabe não encolhe a letra: o slide é recusado e você reescreve."])
 
 MODELO_JSON = """{
   "slides": [
@@ -10,8 +30,9 @@ MODELO_JSON = """{
 }"""
 
 
-def montar(tema, publico=None, slides=7):
+def montar(tema, publico=None, slides=7, visual=None):
     miolo = slides - 2
+    visual = visual or "escuro"
     publico = publico or "quem se interessa por esse tema"
     return f"""Você escreve carrosséis de Instagram em português do Brasil, do jeito que se fala.
 
@@ -41,6 +62,7 @@ REGRAS DE ESCRITA
 - Sem clichê: {", ".join(f'"{c}"' for c in R.CLICHES)}.
 - Não invente número, estatística, pesquisa ou fato. Só use número que estiver no TEMA acima.
 - Para destacar em cor, marque até {R.DESTAQUES_POR_SLIDE} trechos curtos por slide com asteriscos: *assim*.
+{cabe_na_tela(visual)}
 
 Antes de responder, conte as palavras de cada campo e confira cada regra. Reescreva o que passar do limite.
 

@@ -7,6 +7,7 @@ prende de verdade, se a ordem conta uma história) fica no prompt e na sua leitu
 import re
 import unicodedata
 
+from . import largura as L
 from .visual import MODELOS, VISUAIS
 
 # limites de palavras por papel
@@ -20,6 +21,7 @@ SLIDES_MIN = 5
 SLIDES_MAX = 10
 DESTAQUES_POR_SLIDE = 2
 
+CAMPO = {"titulo": "o título", "texto": "o texto", "pedido": "o pedido"}
 TIPOS = ("capa", "miolo", "final")
 CAMPOS_SLIDE = {"tipo", "titulo", "texto", "pedido", "imagem"}
 CAMPOS_TOPO = {"arroba", "visual", "cores", "tema", "slides", "imagem"}
@@ -138,6 +140,7 @@ def verificar(dados, fonte_dos_numeros=None):
         if sem:
             add("formato", "imagem", f"o visual imagem pede uma foto: \"imagem\" no topo (uma para todos) ou em cada slide (falta no slide {', '.join(sem)})")
 
+    vis = dados.get("visual", "escuro")
     for i, s in enumerate(slides, 1):
         onde = f"slide {i}"
         tit, txt, ped = s.get("titulo", ""), s.get("texto", ""), s.get("pedido", "")
@@ -169,6 +172,13 @@ def verificar(dados, fonte_dos_numeros=None):
             m = PEDIDO_FORA.search(_sem_marcas(tit + " " + txt))
             if m:
                 add("pedido no lugar certo", onde, f"\"{m.group(0)}\" é pedido; pedido só no último slide")
+
+        # cabe na largura: uma palavra longa do português não cabe sozinha e nenhuma contagem de palavras
+        # pega isso. Medida aqui na fonte embutida, antes de ligar o navegador; o render remede no Chromium.
+        for campo in ("titulo", "texto", "pedido"):
+            for pedaco, w, caixa in L.nao_cabe(_sem_marcas(s.get(campo, "")), vis, papel, campo):
+                add("cabe na caixa", onde, f"a palavra \"{pedaco}\" tem {round(w)} px e {CAMPO[campo]} só tem "
+                                           f"{round(caixa)} px de largura; passa {round(w - caixa)} px")
 
         tudo = " ".join(x for x in (tit, txt, ped) if x)
         if _tem_emoji(tudo):
@@ -208,7 +218,9 @@ def descrever():
    com até {PEDIDO} palavras, e o último slide com até {FINAL_TOTAL} palavras no total.
 5. Escrita: sem emoji, sem travessão, sem hashtag, sem link e sem clichê de guru.
 6. Número com fonte: quando o texto vem da IA, todo número nos slides tem de estar no tema que você escreveu.
-7. Cabe na caixa: a letra nunca encolhe. Se o texto não cabe, o slide é recusado e você encurta. Dois textos não encostam.
+7. Cabe na caixa: a letra nunca encolhe. Palavra mais larga que o slide é recusada aqui, medida na fonte,
+   antes de abrir o navegador; o resto (quantas linhas o texto dá) é remedido no slide desenhado.
+   Se o texto não cabe, o slide é recusado e você encurta. Dois textos não encostam.
 8. Dá para ler: o contraste de cada letra é medido no slide desenhado, contra o que fica embaixo dela, inclusive a foto.
 
 O que a máquina não mede (se o gancho prende, se a ordem conta uma história) vai como orientação no prompt."""

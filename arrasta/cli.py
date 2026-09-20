@@ -139,7 +139,7 @@ def cmd_render(a):
 def cmd_prompt(a, motivo=None):
     pasta = Path(a.saida or Path("saida") / slug(a.tema))
     pasta.mkdir(parents=True, exist_ok=True)
-    texto = P.montar(a.tema, a.publico, a.slides)
+    texto = P.montar(a.tema, a.publico, a.slides, a.visual)
     (pasta / "prompt.txt").write_text(texto, encoding="utf-8")
     img = str(Path(a.imagem).expanduser().resolve()) if a.imagem else None
     (pasta / PEDIDO).write_text(json.dumps({"tema": a.tema, "publico": a.publico, "arroba": a.arroba, "slides": a.slides,
@@ -201,7 +201,7 @@ def cmd_tema(a):
         if ia.provedor(a.ia) is None:
             return cmd_prompt(a, motivo="Sem OPENAI_API_KEY nem ANTHROPIC_API_KEY no ambiente: o arrasta monta o prompt e você cola em qualquer IA.")
         pasta = Path(a.saida or Path("saida") / slug(a.tema))
-        dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia)
+        dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia, visual=a.visual)
     except ia.FalhaIA as e:
         print(f"\n{e}", file=sys.stderr)
         return 1

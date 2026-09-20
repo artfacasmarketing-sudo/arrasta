@@ -228,7 +228,7 @@ Todo carrossel passa por estas regras antes de virar PNG. Veja a qualquer hora c
 4. **Pedido no lugar certo:** o pedido (comentar, salvar, mandar pra alguém) só no último slide, com até 12 palavras, e o último slide com até 25 palavras.
 5. **Escrita:** sem emoji, sem travessão, sem hashtag, sem link e sem clichê de guru.
 6. **Número com fonte:** quando o texto vem da IA, todo número nos slides tem de estar no tema que você escreveu. A IA não inventa estatística.
-7. **Cabe na caixa:** a letra nunca encolhe para caber. Se o texto não cabe, o slide é recusado e você encurta. Dois textos do mesmo slide também não podem encostar um no outro.
+7. **Cabe na caixa:** a letra nunca encolhe para caber. Palavra mais larga que o slide é medida na própria fonte e recusada antes de abrir o navegador, com a palavra e quantos pixels ela passa; o resto é remedido no slide desenhado. Se o texto não cabe, o slide é recusado e você encurta. Dois textos do mesmo slide também não podem encostar um no outro.
 8. **Dá para ler:** o contraste de cada letra é medido no slide desenhado, contra o que fica embaixo dela, inclusive a foto (mínimo da WCAG: 4,5:1; texto grande, 3:1).
 
 O que a máquina não mede (se o gancho prende de verdade, se a ordem conta uma história) vai como orientação no prompt e fica com a sua leitura.
