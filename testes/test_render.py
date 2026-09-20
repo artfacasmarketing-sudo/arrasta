@@ -1,6 +1,7 @@
 """Controle positivo do render: cada defeito plantado tem de ser recusado, e nada pode ser gravado quando recusa."""
 import copy
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -39,7 +40,7 @@ def test_rodada_menor_nao_deixa_png_velho(tmp_path):
 
 @pytest.mark.parametrize("plantar, trecho", [
     (lambda d: d["slides"][2].update(texto=" ".join(["inconstitucionalmente"] * 26)), "passa"),
-    (lambda d: d["slides"][0].update(titulo="Anticonstitucionalissimamente"), "passa 623 px"),
+    (lambda d: d["slides"][0].update(titulo="Anticonstitucionalissimamente"), r'"Anticonstitucionalissimamente" tem \d+ px'),
     (lambda d: d.update(cores={"texto": "#333333"}), "contraste"),
     (lambda d: d.update(visual="claro", cores={"destaque": "#f6e7b0"}), "contraste"),
     (lambda d: d["slides"][1].update(titulo="A capa entrega 你"), "caractere que a fonte não tem"),
@@ -77,14 +78,18 @@ def test_molde_com_letra_fora_da_fonte_e_recusado(tmp_path, monkeypatch):
 def test_palavra_larga_e_recusada_com_a_palavra_e_o_numero(tmp_path):
     """o que a contagem de palavras aprova e a caixa recusa: uma palavra só, larga demais.
 
-    Medido no Chromium com o molde escuro: "surpreendentemente" a 104px dá 1025 px, a caixa do título tem 888.
-    A recusa tem de dizer a palavra e quanto ela passa: sem isso a IA corrige no escuro."""
+    Medido no Chromium com o molde escuro: "surpreendentemente" a 104px dá 1025 px no macOS, a caixa do
+    título tem 888. A largura sai do navegador DESTE sistema e não é a mesma nos três (o Linux arredonda o
+    avanço de cada glifo), então o teste cobra a palavra, a caixa exata e a ordem de grandeza do transbordo,
+    nunca o pixel exato. A recusa tem de dizer a palavra e o número: sem isso a IA corrige no escuro."""
     d = ex()
     d["slides"][0].update(titulo="O jeito surpreendentemente simples de fazer")
     with pytest.raises(render.Recusado) as e:
         render.renderizar(d, tmp_path / "saida")
-    assert 'surpreendentemente' in str(e.value)
-    assert "1025 px" in str(e.value) and "888 px" in str(e.value) and "passa 137 px" in str(e.value)
+    msg = str(e.value)
+    assert 'surpreendentemente' in msg and "888 px de largura" in msg
+    largura, passa = (int(x) for x in re.search(r"tem (\d+) px.*passa (\d+) px", msg).groups())
+    assert 1010 <= largura <= 1040 and 122 <= passa <= 152 and largura - 888 == passa
     assert pngs(tmp_path / "saida") == []
     # e o que a IA recebe nomeia a palavra
     assert any("surpreendentemente" in msg for _, _, msg in e.value.para_ia)

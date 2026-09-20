@@ -79,13 +79,29 @@ def test_a_tabela_de_estilos_e_a_do_molde(pagina, chave):
 
 
 @pytest.mark.parametrize("chave", sorted(L.ESTILOS))
-def test_a_conta_da_fonte_bate_com_o_navegador(pagina, chave):
-    """padrão-ouro: o Chromium que desenha o slide. Medido em 20/09/2026 em 2.898 palavras: erro máximo 0,12 px."""
+def test_a_conta_da_fonte_cabe_na_folga_declarada(pagina, chave):
+    """padrão-ouro: o Chromium que desenha o slide, NESTE sistema.
+
+    O erro não é o mesmo nos três: medido em 20/09/2026 no mesmo Chromium 153.0.8010.12, 420 palavras por
+    sistema, deu 0,094 px no macOS, 0,266 px no Windows e 4,524 px no Linux, que arredonda o avanço de cada
+    glifo e por isso erra proporcional ao tamanho da palavra. O que o teste cobra não é um número fixo: é
+    que o erro real caiba na folga que o regras.py usa para não recusar o que este navegador aceitaria."""
     vis, papel, campo = chave
     fs, peso, espaco, alta, _ = L.ESTILOS[chave]
     no_navegador = pagina(vis, papel, campo, cheio=False).evaluate(MEDIR_PALAVRAS, [campo, PALAVRAS])
-    pior = max(abs(L.largura(p, fs, peso, espaco, alta) - cr) for p, cr in zip(PALAVRAS, no_navegador))
-    assert pior < 0.5, f"{chave}: a conta da fonte erra {pior:.3f} px contra o navegador"
+    for p, cr in zip(PALAVRAS, no_navegador):
+        n = len(p.upper() if alta else p)
+        erro = L.largura(p, fs, peso, espaco, alta) - cr
+        assert abs(erro) <= L.folga(n), (f"{chave} {p!r}: a conta erra {erro:+.3f} px e a folga para {n} "
+                                         f"letras é {L.folga(n):.2f} px")
+
+
+def test_a_folga_cobre_o_pior_sistema_medido():
+    """a folga não pode encolher abaixo do que foi medido: no Linux o erro chegou a 0,5152 px por letra e a
+    4,524 px numa palavra de 18 letras (CI de 20/09/2026, run 35545244660, os 3 sistemas na mesma rodada)."""
+    assert L.FOLGA_POR_LETRA >= 0.5152
+    assert L.folga(18) >= 4.524
+    assert L.folga(1) >= 0.5152
 
 
 def test_o_kerning_entra_na_conta():
@@ -101,9 +117,12 @@ def test_o_kerning_entra_na_conta():
 @pytest.mark.parametrize("chave, n, cabe, nao", [(k, *v) for k, v in L.LIMITE_LETRAS.items()])
 def test_o_limite_de_letras_tem_as_duas_palavras_que_o_justificam(chave, n, cabe, nao):
     """o limite não é arredondamento: a palavra mais larga do léxico com N letras cabe, e a de N+1 não."""
+    fs, peso, espaco, alta, caixa = L.ESTILOS[chave]
     assert len(cabe) == n and len(nao) == n + 1
-    assert not L.nao_cabe(cabe, *chave), f"{chave}: \"{cabe}\" deveria caber"
-    assert L.nao_cabe(nao, *chave), f"{chave}: \"{nao}\" deveria não caber"
+    # aqui é a largura crua contra a caixa, sem a folga do pré-filtro: o limite é sobre o que CABE no slide,
+    # não sobre o que o regras.py consegue barrar antes do navegador
+    assert L.largura(cabe, fs, peso, espaco, alta) <= caixa, f"{chave}: \"{cabe}\" deveria caber"
+    assert L.largura(nao, fs, peso, espaco, alta) > caixa, f"{chave}: \"{nao}\" deveria não caber"
 
 
 def test_palavra_com_hifen_nao_e_medida_inteira():

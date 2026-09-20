@@ -209,9 +209,23 @@ ESTILOS = {
     ("imagem", "final", "pedido"): (86.26, 800, 0, True, 933),
 }
 
-# quanto a nossa conta pode errar contra o navegador: medido em 2.898 palavras e nos 1.647 textos do corpus
-# de 20/09/2026, erro máximo 0,12 px. 1 px é folga de sobra e nunca recusa o que o Chromium aceitaria.
-FOLGA = 1.0
+# Quanto esta conta pode errar contra o navegador que vai desenhar o slide. MEDIDO em 20/09/2026 nos três
+# sistemas, no mesmo Chromium 153.0.8010.12, 420 palavras por sistema (20 palavras nos 21 campos):
+#   macOS    0,094 px no pior caso   0,0156 px por letra
+#   Windows  0,266 px                0,0252 px por letra
+#   Linux    4,524 px                0,5152 px por letra
+# O Linux é o único que ARREDONDA o avanço de cada glifo (FreeType), e por isso o erro dele cresce com o
+# tamanho da palavra — daí a folga ser POR LETRA, e não um número fixo.
+# A direção do erro decide o tamanho da folga: quem manda no slide é o render, que mede no navegador do
+# usuário. Deixar passar é aceitável (o render remede e recusa); recusar o que aquele navegador aceitaria
+# não é. Por isso a folga cobre o PIOR sistema com margem, e não a média dos três.
+FOLGA_BASE = 1.0
+FOLGA_POR_LETRA = 0.6
+
+
+def folga(n):
+    """a folga em px para um trecho de n letras."""
+    return FOLGA_BASE + FOLGA_POR_LETRA * n
 
 # Onde uma palavra longa do português realmente não cabe, e a partir de quantas letras. MEDIDO em 20/09/2026
 # sobre um léxico de 4.175 palavras em português tiradas dos nossos próprios arquivos (os 5 documentos do
@@ -270,6 +284,6 @@ def nao_cabe(txt, visual, papel, campo):
             w = largura(p, fs, peso, espaco, alta)
         except SemGlifo:
             continue
-        if w > caixa + FOLGA:
+        if w > caixa + folga(len(p)):
             fora.append((p, w, caixa))
     return fora
