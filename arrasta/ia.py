@@ -208,6 +208,12 @@ def _ambiente(qual, base):
 
 
 def _rodar_cli(args, entrada, sessao):
+    # o caminho inteiro, resolvido pelo PATH: no Windows o subprocess não procura .bat/.cmd sozinho,
+    # e o comando some com "arquivo não encontrado" mesmo estando instalado
+    exe = shutil.which(args[0])
+    if not exe:
+        raise FalhaIA(f"o comando {args[0]} não está instalado")
+    args = [exe, *args[1:]]
     try:
         r = subprocess.run(args, input=entrada, capture_output=True, text=True,
                            cwd=str(sessao.pasta), env=sessao.ambiente, timeout=ESPERA_CLI)
