@@ -123,6 +123,19 @@ codex --sandbox danger-full-access "faz um carrossel sobre por que o cliente som
 
 O agente segue o mesmo caminho sem chave (prompt, resposta, montar, correção, até 3 vezes) e mostra a prévia. No Codex, o `--sandbox danger-full-access` é preciso porque o navegador que desenha os slides não abre dentro do sandbox dele.
 
+### Com a assinatura do Claude que você já paga (sem chave)
+
+Se você já usa o Claude Code no terminal e está logado nele, o arrasta pede o texto a ele e não gasta chave
+nenhuma:
+
+```
+arrasta tema "por que o cliente some depois do orçamento" --arroba "@seuperfil" --ia claude_code
+```
+
+O `claude` é chamado em modo sem interface, numa pasta vazia, sem ferramenta, sem skill, sem MCP e sem o seu
+`CLAUDE.md`: ele entra só como quem escreve o texto. O modelo é o padrão do seu Claude Code.
+**Testado no macOS.**
+
 ### Com a sua chave da OpenAI ou da Anthropic (um comando)
 
 Guarde a chave no terminal (ela fica só no seu computador). Use a linha da empresa da sua chave.
@@ -157,6 +170,7 @@ O arrasta pede o texto à IA, confere as regras, pede correção se precisar (at
 | `ANTHROPIC_API_KEY` | Anthropic | `claude-opus-5` |
 | as duas | OpenAI (troque com `--ia anthropic`) | o da IA escolhida |
 | nenhuma | nenhuma: o arrasta monta o prompt para você colar | |
+| nenhuma, com `--ia claude_code` | a sua assinatura do Claude Code | o padrão do seu Claude Code |
 
 Para gastar menos, escolha um modelo menor com `--modelo`, por exemplo `--modelo gpt-5.4-mini` ou `--modelo claude-sonnet-5`.
 
@@ -168,7 +182,9 @@ Para gastar menos, escolha um modelo menor com `--modelo`, por exemplo `--modelo
 | `--publico "casais montando o primeiro apartamento"` | pra quem é o carrossel; a IA escreve pensando nessa pessoa |
 | `--slides 8` | quantos slides, de 5 a 10 (padrão 7) |
 | `--saida pasta` | outra pasta de saída |
+| `--objetivo salvamento` | para que serve o carrossel: `alcance`, `salvamento`, `comentário`, `autoridade` ou `clique`. Escolhe a fórmula de copy, o gancho da capa e o pedido do final. Veja as cinco com `arrasta objetivos` |
 | `--ia openai` ou `--ia anthropic` | qual chave usar quando as duas estão no ambiente |
+| `--ia claude_code` | usa a sua assinatura do Claude Code, sem chave (testado no macOS) |
 | `--modelo nome` | outro modelo da IA escolhida |
 | `--visual claro` | o visual dos slides: `escuro` (padrão), `claro` ou `imagem` |
 | `--imagem foto.jpg` | a foto de fundo do visual `imagem`, a mesma em todos os slides |

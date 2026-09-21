@@ -15,10 +15,22 @@ Tire do pedido: o tema (obrigatório) e, se ela disser, o @ (`--arroba "@perfil"
 quantos slides (`--slides`, de 5 a 10), o visual (`--visual escuro`, `claro` ou `imagem`), a foto do visual imagem
 (`--imagem caminho/da/foto.jpg`) e a pasta de saída (`--saida`). Se faltar o tema, pergunte. O resto tem padrão.
 
+**Antes de montar, pergunte o OBJETIVO** — é a pergunta que muda o carrossel inteiro:
+
+> Para que serve este carrossel: **alcance** (chegar em gente nova), **salvamento** (ela guarda para usar),
+> **comentário** (ela responde), **autoridade** (ela passa a te levar a sério) ou **clique** (ela vai para o link)?
+
+O objetivo escolhe a fórmula de copy, a forma do gancho da capa e o pedido do último slide. Passe em
+`--objetivo <valor>` (aceita com ou sem acento). Se a pessoa não quiser escolher ou já tiver dito o que quer
+de um jeito que dá para traduzir ("quero que salvem" → salvamento), siga com o que ela disse e diga qual
+objetivo você usou. Sem objetivo nenhum, o arrasta escreve como sempre escreveu.
+
+Para ver as cinco fórmulas com a espinha slide a slide: `arrasta objetivos`.
+
 ## O ciclo
 
 1. Monte o pedido:
-   `arrasta prompt "<tema>" <opções>`
+   `arrasta prompt "<tema>" --objetivo <objetivo> <opções>`
    Ele grava `prompt.txt` e `pedido.json` numa pasta e imprime o caminho do `resposta.txt`. Use essa pasta daqui em diante.
 2. Leia o `prompt.txt` inteiro e siga cada regra dele. Grave em `resposta.txt` só o JSON que ele pede.
 3. Rode `arrasta montar <pasta>/resposta.txt`.
@@ -37,4 +49,8 @@ quantos slides (`--slides`, de 5 a 10), o visual (`--visual escuro`, `claro` ou 
   `arrasta prompt` → `arrasta montar`, que lê o tema do `pedido.json`.
 - Mexer à mão em `pedido.json`, `prompt.txt` ou `slides.json`, nem mudar o tema para um número passar.
 - Inventar número, estatística ou pesquisa. Só vale número que estiver no tema.
+- Inventar cliente, depoimento, nome ou resultado. Prova social só com o que a pessoa trouxe no tema;
+  sem isso, o slide vira argumento, nunca depoimento.
+- Terminar slide anunciando o próximo ("mas falta", "agora vem", "tem coisa pior"). Cada slide fecha a
+  própria ideia: quem puxa a pessoa para o próximo é a espinha da fórmula, não uma frase-isca.
 - Usar `arrasta tema` com chave de API: aqui quem escreve é você.

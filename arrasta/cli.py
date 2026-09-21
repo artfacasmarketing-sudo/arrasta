@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import __version__
 from . import prompt as P
-from . import ia, regras, resposta, visual
+from . import formulas, ia, regras, resposta, visual
 
 PEDIDO = "pedido.json"
 # nomes que o Windows não aceita como pasta
@@ -37,6 +37,14 @@ def slug(s):
     if len(s) > 40:
         s = s[:41].rsplit("-", 1)[0] if "-" in s[:41] else s[:40]
     return f"{s}-carrossel" if s in RESERVADOS else s or "carrossel"
+
+
+def objetivo_valido(v):
+    """aceita com ou sem acento: no PowerShell e em teclado de celular o acento atrapalha."""
+    limpo = unicodedata.normalize("NFKD", v).encode("ascii", "ignore").decode().lower().strip()
+    if limpo not in formulas.OBJETIVOS:
+        raise argparse.ArgumentTypeError("use " + ", ".join(formulas.NOME.values()))
+    return limpo
 
 
 def mostrar_erros(erros):
@@ -139,11 +147,11 @@ def cmd_render(a):
 def cmd_prompt(a, motivo=None):
     pasta = Path(a.saida or Path("saida") / slug(a.tema))
     pasta.mkdir(parents=True, exist_ok=True)
-    texto = P.montar(a.tema, a.publico, a.slides, a.visual)
+    texto = P.montar(a.tema, a.publico, a.slides, a.visual, a.objetivo)
     (pasta / "prompt.txt").write_text(texto, encoding="utf-8")
     img = str(Path(a.imagem).expanduser().resolve()) if a.imagem else None
     (pasta / PEDIDO).write_text(json.dumps({"tema": a.tema, "publico": a.publico, "arroba": a.arroba, "slides": a.slides,
-                                            "visual": a.visual, "imagem": img},
+                                            "visual": a.visual, "imagem": img, "objetivo": a.objetivo},
                                            ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     resp = pasta / "resposta.txt"
     if motivo:
@@ -204,7 +212,8 @@ def cmd_tema(a):
         # o visual e a foto são resolvidos ANTES de chamar a IA: as regras que a resposta tem de passar
         # dependem dos dois, e o laço de correção da IA não tem como adivinhar nenhum deles
         contexto = aplicar_visual({}, a, Path.cwd())
-        dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia, contexto=contexto)
+        dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia, contexto=contexto,
+                             objetivo=a.objetivo)
     except ia.FalhaIA as e:
         print(f"\n{e}", file=sys.stderr)
         return 1
@@ -230,6 +239,9 @@ def main(argv=None):
 
     def tema_args(p):
         p.add_argument("tema", help="sobre o que é o carrossel, entre aspas")
+        p.add_argument("--objetivo", type=objetivo_valido, metavar="OBJ",
+                       help="para que serve este carrossel: " + ", ".join(formulas.NOME.values())
+                            + ". Escolhe a fórmula, o gancho da capa e o pedido do final")
         p.add_argument("--arroba", help="seu @, aparece no topo dos slides")
         p.add_argument("--publico", help="pra quem é o carrossel (opcional)")
         p.add_argument("--slides", type=int, default=7, choices=range(regras.SLIDES_MIN, regras.SLIDES_MAX + 1), metavar="N",
@@ -267,6 +279,9 @@ def main(argv=None):
 
     p = sub.add_parser("regras", help="mostra as regras que todo carrossel cumpre")
     p.set_defaults(f=lambda a: print(regras.descrever()) or 0)
+
+    p = sub.add_parser("objetivos", help="mostra as fórmulas de copy e a espinha de cada uma")
+    p.set_defaults(f=lambda a: print(formulas.descrever()) or 0)
 
     a = ap.parse_args(argv)
     if not a.cmd:

@@ -1,4 +1,5 @@
 """O prompt que vai para a IA. As regras aqui são as mesmas que o regras.py confere depois."""
+from . import formulas as F
 from . import largura as L
 from . import regras as R
 
@@ -30,10 +31,25 @@ MODELO_JSON = """{
 }"""
 
 
-def montar(tema, publico=None, slides=7, visual=None):
+def sem_objetivo(slides):
+    """o que cada slide faz quando ninguém disse o objetivo: o comportamento de sempre, nada muda."""
+    return f"""CAPA (slide 1)
+- Abre uma pergunta na cabeça de quem lê e não entrega a resposta. Quem lê a capa tem de querer arrastar.
+- Cita algo concreto do dia a dia desse público: um objeto, um lugar, um momento.
+
+MIOLO (slides 2 a {slides - 1})
+- Uma ideia por slide, na ordem que responde a pergunta da capa aos poucos.
+
+FINAL (slide {slides})
+- "titulo" fecha a ideia em uma frase.
+- "pedido" faz UM pedido só: comentar uma palavra, salvar o post ou mandar pra alguém."""
+
+
+def montar(tema, publico=None, slides=7, visual=None, objetivo=None):
     miolo = slides - 2
     visual = visual or "escuro"
     publico = publico or "quem se interessa por esse tema"
+    estrutura = F.texto(objetivo, slides) if objetivo else sem_objetivo(slides)
     return f"""Você escreve carrosséis de Instagram em português do Brasil, do jeito que se fala.
 
 TEMA: {tema}
@@ -41,23 +57,21 @@ PÚBLICO: {publico}
 
 Escreva um carrossel de {slides} slides sobre o tema: 1 capa, {miolo} de miolo e 1 final.
 
-CAPA (slide 1)
-- Abre uma pergunta na cabeça de quem lê e não entrega a resposta. Quem lê a capa tem de querer arrastar.
-- Cita algo concreto do dia a dia desse público: um objeto, um lugar, um momento.
-- "titulo" com até {R.CAPA_TITULO} palavras. "texto" opcional, com até {R.CAPA_TEXTO} palavras.
+{estrutura}
 
-MIOLO (slides 2 a {slides - 1})
-- Uma ideia por slide, na ordem que responde a pergunta da capa aos poucos.
-- Cada slide termina deixando vontade de ver o próximo.
-- "titulo" com até {R.MIOLO_TITULO} palavras. "titulo" mais "texto" com até {R.MIOLO_TOTAL} palavras no slide.
-
-FINAL (slide {slides})
-- "titulo" fecha a ideia em uma frase.
-- "pedido" faz UM pedido só, com até {R.PEDIDO} palavras: comentar uma palavra, salvar o post ou mandar pra alguém.
-- O slide inteiro com até {R.FINAL_TOTAL} palavras.
+QUANTAS PALAVRAS CABEM
+- Capa: "titulo" com até {R.CAPA_TITULO} palavras. "texto" opcional, com até {R.CAPA_TEXTO} palavras.
+- Miolo: "titulo" com até {R.MIOLO_TITULO} palavras. "titulo" mais "texto" com até {R.MIOLO_TOTAL} no slide.
+- Final: "pedido" com até {R.PEDIDO} palavras, e o slide inteiro com até {R.FINAL_TOTAL}.
 
 REGRAS DE ESCRITA
 - Pedido (comentar, salvar, compartilhar, seguir) só no último slide.
+- Cada slide FECHA a própria ideia. A vontade de arrastar vem da ordem dos slides, não de uma frase no fim.
+  PROIBIDO terminar slide anunciando o próximo: "mas falta", "agora vem", "tem coisa pior", "e tem mais",
+  "só que", "o problema é outro", "no próximo slide". Se o slide só faz sentido com o seguinte, ele está
+  no lugar errado.
+- Não invente cliente, depoimento, nome nem resultado. Prova social só com o que estiver no TEMA acima;
+  sem isso, escreva o argumento, nunca um depoimento.
 - Frase curta. Sem emoji, sem travessão, sem hashtag, sem link.
 - Sem clichê: {", ".join(f'"{c}"' for c in R.CLICHES)}.
 - Não invente número, estatística, pesquisa ou fato. Só use número que estiver no TEMA acima.
