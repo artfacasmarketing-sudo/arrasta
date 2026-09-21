@@ -50,17 +50,25 @@ def test_o_prompt_leva_a_espinha_o_gancho_e_o_pedido(obj):
     assert "diga isso no lugar de forçar" not in t
 
 
-def test_sem_objetivo_o_prompt_e_o_de_sempre():
-    """quem já usa não pode ser surpreendido: sem --objetivo, a estrutura continua a antiga."""
+def test_sem_objetivo_a_estrutura_e_a_antiga_menos_o_que_puxava_o_proximo():
+    """sem --objetivo continua a estrutura de antes (capa, miolo, final, sem fórmula nem espinha).
+
+    O QUE MUDOU, de propósito: o miolo dizia "na ordem que responde a pergunta da capa aos poucos". O "aos
+    poucos" virava frase que anuncia o próximo slide — 17 de 25 slides de miolo da prova, contados por
+    leitura. Saiu; no lugar, cada slide fecha a própria ideia."""
     t = P.montar("brindes corporativos", "gestor", 7, "escuro")
     assert "OBJETIVO DESTE CARROSSEL" not in t and "ESPINHA" not in t
     assert "CAPA (slide 1)" in t and "MIOLO (slides 2 a 6)" in t and "FINAL (slide 7)" in t
+    assert "aos poucos" not in t
+    assert "Cada slide fecha a própria ideia" in t
 
 
 @pytest.mark.parametrize("objetivo", [None, *F.OBJETIVOS])
 def test_a_frase_isca_e_proibida_com_ou_sem_objetivo(objetivo):
-    """53% dos carrosséis do B1 tinham pelo menos uma frase que anuncia o próximo slide. Saiu a regra que
-    mandava fazer isso; entrou a proibição, nos dois caminhos."""
+    """contado por LEITURA na prova de 21/09/2026: 17 de 25 slides de miolo terminavam anunciando o próximo
+    com o prompt antigo, 0 de 25 com o novo. Saiu a regra que mandava fazer isso; entrou a proibição, nos
+    dois caminhos. (O "16% no B1" e o "12% -> 0%" que estavam aqui saíram de um detector de expressão
+    literal, que na mesma prova achou 3 dos 17: número de detector, não do padrão.)"""
     t = P.montar("brindes", None, 7, "escuro", objetivo)
     assert "Cada slide termina deixando vontade de ver o próximo" not in t
     assert "PROIBIDO terminar slide anunciando o próximo" in t
@@ -93,3 +101,51 @@ def test_arrasta_objetivos_mostra_as_cinco(capsys):
     for obj in F.OBJETIVOS:
         assert F.FORMULAS[obj]["nome"] in saida and F.NOME[obj] in saida
     assert "não inventa cliente" in saida
+
+
+def test_clique_sem_destino_e_recusado_com_exemplo(tmp_path, capsys):
+    """sem destino, a IA inventa o que tem no link: 4 de 4 cliques da conferência de 21/09/2026."""
+    assert cli.main(["prompt", "kit de boas-vindas", "--objetivo", "clique", "--saida", str(tmp_path / "a")]) == 2
+    err = capsys.readouterr().err
+    assert "pede --destino" in err and F.EXEMPLO_DESTINO in err
+    assert not (tmp_path / "a" / "prompt.txt").exists(), "recusou, então não pode ter gravado nada"
+
+
+def test_clique_com_destino_leva_o_destino_e_a_proibicao(tmp_path):
+    pasta = tmp_path / "b"
+    assert cli.main(["prompt", "kit de boas-vindas", "--objetivo", "clique",
+                     "--destino", "checklist do que entra no kit", "--saida", str(pasta)]) == 0
+    t = (pasta / "prompt.txt").read_text(encoding="utf-8")
+    assert "DESTINO (o que a pessoa encontra no link): checklist do que entra no kit" in t
+    assert "Não invente item, formato, preço, prazo" in t
+    assert json.loads((pasta / "pedido.json").read_text(encoding="utf-8"))["destino"] == "checklist do que entra no kit"
+
+
+@pytest.mark.parametrize("objetivo", [None, *F.OBJETIVOS])
+def test_o_link_inventado_e_proibido_com_ou_sem_objetivo(objetivo):
+    t = P.montar("brindes", None, 7, "escuro", objetivo, "um destino" if objetivo == "clique" else None)
+    assert "Não invente o que existe do outro lado do link" in t
+
+
+def test_salvamento_nao_pede_numero_de_ordem():
+    """5 de 5 salvamentos pediram correção pelo "1, 2, 3" dos passos: o número de ordem também é número."""
+    t = F.texto("salvamento", 7)
+    assert "numerado" not in t and "quantos passos" not in t
+    assert "SEM número de ordem" in t
+
+
+def test_viral_e_ponte_fecham_a_ideia_e_nao_o_pra_quem():
+    for obj in ("alcance", "clique"):
+        assert "repetiria" in F.FORMULAS[obj]["final"]
+        assert "para quem" not in F.FORMULAS[obj]["final"]
+
+
+def test_autoridade_so_usa_primeira_pessoa_com_experiencia_no_tema():
+    f = F.FORMULAS["autoridade"]
+    assert "princípio" in f["final"] and "Primeira pessoa só se" in f["final"]
+    assert any("SÓ se o TEMA trouxer a experiência" in passo[1] for passo in f["miolo"])
+
+
+def test_comentario_pede_uma_palavra_do_tema_em_maiusculas():
+    verbo, exemplo = F.PEDIDOS["comentario"]
+    assert "MAIÚSCULAS" in verbo and "CADERNO" in exemplo

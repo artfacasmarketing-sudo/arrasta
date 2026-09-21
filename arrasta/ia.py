@@ -278,7 +278,8 @@ def _pedir_codex(sessao, modelo, msgs):
     return texto, {"role": "assistant", "content": texto}
 
 
-def gerar(tema, publico=None, slides=7, modelo=None, ia=None, avisar=print, contexto=None, objetivo=None):
+def gerar(tema, publico=None, slides=7, modelo=None, ia=None, avisar=print, contexto=None, objetivo=None,
+          destino=None):
     """devolve (dados, tentativas, provedor, modelo). Levanta FalhaIA se a API recusar ou se o texto não passar nas regras.
 
     contexto: o que não vem da IA e muda o que é aprovado — visual e foto, já resolvidos. Entra no dados ANTES de
@@ -298,7 +299,7 @@ def gerar(tema, publico=None, slides=7, modelo=None, ia=None, avisar=print, cont
         import anthropic
         cliente, pedir = anthropic.Anthropic(), _pedir_anthropic
     contexto = {k: v for k, v in (contexto or {}).items() if v}
-    msgs = [{"role": "user", "content": P.montar(tema, publico, slides, contexto.get("visual"), objetivo)
+    msgs = [{"role": "user", "content": P.montar(tema, publico, slides, contexto.get("visual"), objetivo, destino)
              + "\nCampo que não se aplica ao slide (texto da capa, pedido fora do final) vai como texto vazio \"\"."}]
     fonte = " ".join(x for x in (tema, publico) if x)
     erros = []

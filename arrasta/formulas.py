@@ -12,6 +12,8 @@ em 79% dos pedidos, e capa com número e capa contrária como as duas formas de 
 
 Regra dura da prova social: a IA não inventa cliente, depoimento, nome nem resultado. Prova social só com
 o que a pessoa trouxer no TEMA. Sem prova no tema, o slide vira argumento, não depoimento.
+Pela mesma regra, a IA não inventa o que existe do outro lado do link: o clique só roda com --destino, e o
+carrossel fala do destino só com o que está escrito nele.
 """
 
 OBJETIVOS = ("alcance", "salvamento", "comentario", "autoridade", "clique")
@@ -31,7 +33,7 @@ FORMULAS = {
             ("a promessa", "o que muda no dia a dia de quem troca", "opcional"),
             ("uma solução", "uma coisa concreta de fazer, com o objeto ou o momento do dia dela", "repete"),
         ],
-        "final": "fecha dizendo para quem esse assunto importa",
+        "final": "o título fecha a ideia numa frase que a pessoa repetiria. O \"pra quem\" fica só no pedido",
         "nao_usar": "quando o tema não tem um erro comum de verdade para contrariar: gancho negativo sem "
                     "alvo vira reclamação genérica",
     },
@@ -54,10 +56,14 @@ FORMULAS = {
     "salvamento": {
         "nome": "POPP",
         "origem": "molde do João: problema, oportunidade, passos práticos, promessa, CTA",
-        "capa": "o problema, com o número quando o TEMA tiver um (quantos passos, quantos erros, quanto custa)",
+        # sem "quantos passos" e sem passo numerado: o número de ordem também é número, e o portão recusa
+        # número que não está no tema. Conferência de 21/09/2026: 5 de 5 salvamentos pediram 1 correção,
+        # todas pelo "1, 2, 3" dos passos (e pelo "3" da capa, no d02).
+        "capa": "o problema, dito no momento em que ele acontece. Número só se estiver escrito no TEMA",
         "miolo": [
             ("a oportunidade", "o que dá para fazer a respeito, em uma frase"),
-            ("um passo", "um passo prático, numerado, que a pessoa consegue executar sozinha", "repete"),
+            ("um passo", "um passo prático que a pessoa consegue executar sozinha, dito pela ação e SEM "
+                         "número de ordem na frente (1, 2, 3 também é número, e só vale número do TEMA)", "repete"),
             ("a promessa", "o que ela tem nas mãos depois de fazer os passos"),
         ],
         "final": "fecha dizendo quando ela vai precisar disso de novo",
@@ -68,14 +74,18 @@ FORMULAS = {
         "nome": "Prova em primeira pessoa",
         "origem": "adaptação do POPP: a prova entra no lugar da promessa, e quem fala é quem fez",
         "capa": "o que todo mundo vê por fora, ou o número do caso quando ele está no TEMA",
+        # primeira pessoa só com experiência escrita no tema: sem ela, a fórmula fala do caso na terceira
+        # pessoa. O d19 inventou "nenhuma campanha começa aqui sem essas respostas" num tema sem caso.
         "miolo": [
-            ("o que eu via", "a situação como ela era antes, sem enfeite"),
-            ("o que eu fiz diferente", "a decisão concreta, não o conselho genérico"),
+            ("o que se via", "a situação como ela era antes, sem enfeite. Em primeira pessoa (eu, faço, "
+                             "fazemos, aqui) SÓ se o TEMA trouxer a experiência de quem fala"),
+            ("o que foi feito diferente", "a decisão concreta, não o conselho genérico"),
             ("o que saiu disso", "o resultado, SÓ com o que está no TEMA. Sem dado no tema, escreva o que "
                                  "mudou na prática, sem número"),
             ("o que isso ensina", "o que quem lê tira disso para o caso dela", "repete"),
         ],
-        "final": "fecha com o que você continua fazendo desse jeito até hoje",
+        "final": "fecha com o princípio que fica, dito como regra, não como relato. Primeira pessoa só se "
+                 "o TEMA trouxer a experiência",
         "nao_usar": "quando não há caso, número nem experiência própria no TEMA: sem isso a fórmula vira "
                     "depoimento inventado, que é exatamente o que não pode",
     },
@@ -85,10 +95,12 @@ FORMULAS = {
         "capa": "a promessa concreta do que existe do outro lado, deixando a lacuna aberta",
         "miolo": [
             ("por que o jeito comum não chega lá", "o caminho que a pessoa tentaria sozinha e onde ele para"),
-            ("o que existe do outro lado", "o que ela vai encontrar, dito pelo que resolve"),
-            ("uma amostra", "uma coisa útil de verdade, que já serve mesmo sem clicar", "repete"),
+            ("o que existe do outro lado", "o que ela vai encontrar, SÓ com o que está no DESTINO, dito pelo "
+                                           "que resolve"),
+            ("uma amostra", "uma coisa útil de verdade, tirada do DESTINO, que já serve mesmo sem clicar",
+             "repete"),
         ],
-        "final": "fecha dizendo para quem aquilo do outro lado foi feito",
+        "final": "o título fecha a ideia numa frase que a pessoa repetiria. O \"pra quem\" fica só no pedido",
         "nao_usar": "quando não existe destino de verdade: sem página, material ou link, a ponte não leva a "
                     "lugar nenhum e o carrossel promete o que não entrega",
     },
@@ -98,7 +110,8 @@ FORMULAS = {
 PEDIDOS = {
     "alcance": ("mandar pra alguém", "Manda pra quem precisa ler isso"),
     "salvamento": ("salvar", "Salva pra usar na hora de fazer"),
-    "comentario": ("comentar", "Comenta a palavra que você discorda"),
+    "comentario": ("comentar uma palavra do tema, escrita em MAIÚSCULAS no pedido",
+                   "Discorda? Comenta CADERNO aqui embaixo"),
     "autoridade": ("seguir", "Me segue pra ver o resto do método"),
     "clique": ("clicar", "O link está na bio"),
 }
@@ -123,13 +136,25 @@ def espinha(objetivo, slides):
     return [("capa", f["capa"])] + corpo[:miolo] + [("final", f["final"])]
 
 
-def texto(objetivo, slides):
+# o clique precisa saber o que tem do outro lado: sem isso a IA inventa ("os kits prontos estão no link da
+# bio"), que é a mesma mentira do depoimento inventado. Conferência de 21/09/2026: 4 de 4 cliques sem destino.
+PEDE_DESTINO = ("clique",)
+EXEMPLO_DESTINO = "checklist do que entra no kit de boas-vindas, com os itens e o prazo de cada um"
+
+
+def texto(objetivo, slides, destino=None):
     """o pedaço do prompt que a fórmula manda. Sem objetivo, o prompt não muda."""
     f = FORMULAS[objetivo]
     verbo, exemplo = PEDIDOS[objetivo]
     linhas = [f"OBJETIVO DESTE CARROSSEL: {NOME[objetivo]}",
               f'Fórmula: {f["nome"]} ({f["origem"]}).',
-              "",
+              ""]
+    if destino:
+        linhas += [f"DESTINO (o que a pessoa encontra no link): {destino}",
+                   "Fale do destino SÓ com o que está escrito na linha acima. Não invente item, formato, preço, "
+                   "prazo nem nada que não esteja nela.",
+                   ""]
+    linhas += [
               "ESPINHA, slide a slide. Cada slide cumpre o papel dele e fecha a própria ideia:"]
     for i, (papel, o_que) in enumerate(espinha(objetivo, slides), 1):
         nome = {"capa": "capa", "final": "final"}.get(papel, papel)

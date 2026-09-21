@@ -25,6 +25,10 @@ O objetivo escolhe a fórmula de copy, a forma do gancho da capa e o pedido do �
 de um jeito que dá para traduzir ("quero que salvem" → salvamento), siga com o que ela disse e diga qual
 objetivo você usou. Sem objetivo nenhum, o arrasta escreve como sempre escreveu.
 
+Com **clique**, pergunte também **o que a pessoa encontra no link** antes de montar, e passe em
+`--destino "<o que tem lá>"`. Sem destino o arrasta recusa: o carrossel falaria de um link que ninguém
+descreveu, e você teria de inventar o que tem lá.
+
 Para ver as cinco fórmulas com a espinha slide a slide: `arrasta objetivos`.
 
 ## O ciclo
@@ -51,6 +55,7 @@ Para ver as cinco fórmulas com a espinha slide a slide: `arrasta objetivos`.
 - Inventar número, estatística ou pesquisa. Só vale número que estiver no tema.
 - Inventar cliente, depoimento, nome ou resultado. Prova social só com o que a pessoa trouxe no tema;
   sem isso, o slide vira argumento, nunca depoimento.
+- Inventar o que tem do outro lado do link. Só o que a pessoa disse no `--destino`.
 - Terminar slide anunciando o próximo ("mas falta", "agora vem", "tem coisa pior"). Cada slide fecha a
   própria ideia: quem puxa a pessoa para o próximo é a espinha da fórmula, não uma frase-isca.
 - Usar `arrasta tema` com chave de API: aqui quem escreve é você.

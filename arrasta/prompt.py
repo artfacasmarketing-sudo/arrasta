@@ -32,24 +32,29 @@ MODELO_JSON = """{
 
 
 def sem_objetivo(slides):
-    """o que cada slide faz quando ninguém disse o objetivo: o comportamento de sempre, nada muda."""
+    """o que cada slide faz quando ninguém disse o objetivo.
+
+    Mudou uma linha em 21/09/2026: o miolo dizia "na ordem que responde a pergunta da capa aos poucos", e o
+    "aos poucos" era lido como "segure a resposta e anuncie o próximo slide" — 17 de 25 slides de miolo da
+    prova terminavam assim. Agora cada slide fecha a própria ideia, como nas fórmulas."""
     return f"""CAPA (slide 1)
 - Abre uma pergunta na cabeça de quem lê e não entrega a resposta. Quem lê a capa tem de querer arrastar.
 - Cita algo concreto do dia a dia desse público: um objeto, um lugar, um momento.
 
 MIOLO (slides 2 a {slides - 1})
-- Uma ideia por slide, na ordem que responde a pergunta da capa aos poucos.
+- Uma ideia por slide. Cada slide fecha a própria ideia: quem lê entende o slide sozinho, sem depender do
+  próximo.
 
 FINAL (slide {slides})
 - "titulo" fecha a ideia em uma frase.
 - "pedido" faz UM pedido só: comentar uma palavra, salvar o post ou mandar pra alguém."""
 
 
-def montar(tema, publico=None, slides=7, visual=None, objetivo=None):
+def montar(tema, publico=None, slides=7, visual=None, objetivo=None, destino=None):
     miolo = slides - 2
     visual = visual or "escuro"
     publico = publico or "quem se interessa por esse tema"
-    estrutura = F.texto(objetivo, slides) if objetivo else sem_objetivo(slides)
+    estrutura = F.texto(objetivo, slides, destino) if objetivo else sem_objetivo(slides)
     return f"""Você escreve carrosséis de Instagram em português do Brasil, do jeito que se fala.
 
 TEMA: {tema}
@@ -72,6 +77,8 @@ REGRAS DE ESCRITA
   no lugar errado.
 - Não invente cliente, depoimento, nome nem resultado. Prova social só com o que estiver no TEMA acima;
   sem isso, escreva o argumento, nunca um depoimento.
+- Não invente o que existe do outro lado do link. Só fale do link se houver DESTINO acima, e só com o
+  que está escrito nele.
 - Frase curta. Sem emoji, sem travessão, sem hashtag, sem link.
 - Sem clichê: {", ".join(f'"{c}"' for c in R.CLICHES)}.
 - Não invente número, estatística, pesquisa ou fato. Só use número que estiver no TEMA acima.

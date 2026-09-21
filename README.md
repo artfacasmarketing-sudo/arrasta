@@ -183,6 +183,7 @@ Para gastar menos, escolha um modelo menor com `--modelo`, por exemplo `--modelo
 | `--slides 8` | quantos slides, de 5 a 10 (padrão 7) |
 | `--saida pasta` | outra pasta de saída |
 | `--objetivo salvamento` | para que serve o carrossel: `alcance`, `salvamento`, `comentário`, `autoridade` ou `clique`. Escolhe a fórmula de copy, o gancho da capa e o pedido do final. Veja as cinco com `arrasta objetivos` |
+| `--destino "o que tem no link"` | obrigatório com `--objetivo clique`: o que a pessoa encontra quando clica. A IA só fala do link com o que estiver aqui, e sem ele o arrasta recusa |
 | `--ia openai` ou `--ia anthropic` | qual chave usar quando as duas estão no ambiente |
 | `--ia claude_code` | usa a sua assinatura do Claude Code, sem chave (testado no macOS) |
 | `--modelo nome` | outro modelo da IA escolhida |

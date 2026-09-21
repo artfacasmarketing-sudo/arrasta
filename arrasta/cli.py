@@ -47,6 +47,15 @@ def objetivo_valido(v):
     return limpo
 
 
+def falta_destino(a):
+    """o clique sem destino faz a IA inventar o que tem no link. Devolve a mensagem de recusa, ou None."""
+    if getattr(a, "objetivo", None) in formulas.PEDE_DESTINO and not (getattr(a, "destino", None) or "").strip():
+        return (f"--objetivo {a.objetivo} pede --destino: o que a pessoa encontra quando clica no link.\n"
+                f"Sem isso a IA inventa o que tem do outro lado. Exemplo:\n"
+                f'  arrasta {a.cmd} "{a.tema}" --objetivo {a.objetivo} --destino "{formulas.EXEMPLO_DESTINO}"')
+    return None
+
+
 def mostrar_erros(erros):
     print(f"\nO carrossel quebrou {len(erros)} regra(s):", file=sys.stderr)
     for regra, onde, msg in erros:
@@ -145,13 +154,18 @@ def cmd_render(a):
 
 
 def cmd_prompt(a, motivo=None):
+    recusa = falta_destino(a)
+    if recusa:
+        print(recusa, file=sys.stderr)
+        return 2
     pasta = Path(a.saida or Path("saida") / slug(a.tema))
     pasta.mkdir(parents=True, exist_ok=True)
-    texto = P.montar(a.tema, a.publico, a.slides, a.visual, a.objetivo)
+    texto = P.montar(a.tema, a.publico, a.slides, a.visual, a.objetivo, a.destino)
     (pasta / "prompt.txt").write_text(texto, encoding="utf-8")
     img = str(Path(a.imagem).expanduser().resolve()) if a.imagem else None
     (pasta / PEDIDO).write_text(json.dumps({"tema": a.tema, "publico": a.publico, "arroba": a.arroba, "slides": a.slides,
-                                            "visual": a.visual, "imagem": img, "objetivo": a.objetivo},
+                                            "visual": a.visual, "imagem": img, "objetivo": a.objetivo,
+                                            "destino": a.destino},
                                            ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     resp = pasta / "resposta.txt"
     if motivo:
@@ -205,6 +219,10 @@ def cmd_montar(a):
 
 
 def cmd_tema(a):
+    recusa = falta_destino(a)
+    if recusa:
+        print(recusa, file=sys.stderr)
+        return 2
     try:
         if ia.provedor(a.ia) is None:
             return cmd_prompt(a, motivo="Sem OPENAI_API_KEY nem ANTHROPIC_API_KEY no ambiente: o arrasta monta o prompt e você cola em qualquer IA.")
@@ -213,7 +231,7 @@ def cmd_tema(a):
         # dependem dos dois, e o laço de correção da IA não tem como adivinhar nenhum deles
         contexto = aplicar_visual({}, a, Path.cwd())
         dados, *_ = ia.gerar(a.tema, a.publico, a.slides, a.modelo, a.ia, contexto=contexto,
-                             objetivo=a.objetivo)
+                             objetivo=a.objetivo, destino=a.destino)
     except ia.FalhaIA as e:
         print(f"\n{e}", file=sys.stderr)
         return 1
@@ -242,6 +260,8 @@ def main(argv=None):
         p.add_argument("--objetivo", type=objetivo_valido, metavar="OBJ",
                        help="para que serve este carrossel: " + ", ".join(formulas.NOME.values())
                             + ". Escolhe a fórmula, o gancho da capa e o pedido do final")
+        p.add_argument("--destino", help="com --objetivo clique: o que a pessoa encontra no link, "
+                                         "com as suas palavras. A IA só fala do link com o que estiver aqui")
         p.add_argument("--arroba", help="seu @, aparece no topo dos slides")
         p.add_argument("--publico", help="pra quem é o carrossel (opcional)")
         p.add_argument("--slides", type=int, default=7, choices=range(regras.SLIDES_MIN, regras.SLIDES_MAX + 1), metavar="N",
