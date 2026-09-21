@@ -129,3 +129,30 @@ def test_palavra_com_hifen_nao_e_medida_inteira():
     """o navegador quebra depois do hífen; medir o trecho inteiro recusaria o que cabe."""
     assert L.pedacos("responsabilidade-socioambiental e/ou") == ["responsabilidade-", "socioambiental", "e/", "ou"]
     assert not L.nao_cabe("responsabilidade-socioambiental", "escuro", "capa", "titulo")
+
+
+def test_a_conta_se_confere_sozinha_antes_de_virar_numero():
+    """a conta lê tabela interna do fontTools, que não tem contrato público.
+
+    Uma versão nova pode não quebrar: pode devolver número errado calado, e aí o regras.py recusa o que
+    cabe. Os dois defeitos que já aconteceram de verdade — kerning zerado e peso errado — têm de acusar."""
+    L._conferido = False
+    L.conferir_instrumento()            # com o fontTools instalado, passa
+
+    kern_real = L._kern
+    L._kern = lambda *a: 0
+    try:
+        with pytest.raises(L.InstrumentoErrado, match="kerning"):
+            L.conferir_instrumento()
+    finally:
+        L._kern = kern_real
+
+    crua_real = L._largura_crua
+    L._largura_crua = lambda t, fs, peso, espaco=0.0, alta=False: crua_real(t, fs, 400, espaco, alta)
+    try:
+        with pytest.raises(L.InstrumentoErrado, match="surpreendentemente"):
+            L.conferir_instrumento()
+    finally:
+        L._largura_crua = crua_real
+    L._conferido = False
+    L.largura("teste", 104, 800, -3.64)   # e volta a funcionar

@@ -154,8 +154,44 @@ class SemGlifo(Exception):
     """a fonte embutida não tem esta letra; quem recusa por isso é o render, com o U+ na mensagem."""
 
 
+class InstrumentoErrado(Exception):
+    """a conta de largura parou de bater com o que foi medido; o número dela não vale mais."""
+
+
+# Autoconferência. Esta conta usa tabela interna do fontTools — VarStore do GDEF, PairPos do GPOS, avanço
+# por HVAR — que não tem contrato público. O risco de uma versão nova não é quebrar: é devolver número
+# errado CALADO, e aí o regras.py recusa texto que cabe ou aprova texto que não cabe.
+# Os dois valores abaixo foram medidos em 20/09/2026 contra o Chromium 153 e travam os dois erros que já
+# aconteceram de verdade: sem kerning a conta errou 28,6 px numa palavra, e com o peso errado, 79,9 px.
+PAR_QUE_KERNA = ("A", "V", 800, -170.4)
+PALAVRA_CONHECIDA = ("surpreendentemente", 104, 800, -3.64, 1024.67)
+_conferido = False
+
+
+def conferir_instrumento():
+    """levanta InstrumentoErrado se a conta deixou de bater com o que foi medido. Barato: roda uma vez."""
+    a, b, peso, esperado = PAR_QUE_KERNA
+    k = _kern(0, peso, a, b)
+    if abs(k - esperado) > 1:
+        raise InstrumentoErrado(f"o kerning de {a}{b} no peso {peso} deu {k:.1f} e tem de ser {esperado} "
+                                f"(fontTools instalado mudou a leitura do GPOS?)")
+    txt, fs, peso, espaco, esperado = PALAVRA_CONHECIDA
+    w = _largura_crua(txt, fs, peso, espaco, False)
+    if abs(w - esperado) > 0.5:
+        raise InstrumentoErrado(f'"{txt}" deu {w:.2f} px e tem de dar {esperado} px '
+                                f"(fontTools instalado mudou a leitura da fonte?)")
+
+
 def largura(txt, fs, peso, espaco=0.0, caixaalta=False):
     """largura do texto em px, do jeito que o navegador desenha: avanço + kerning + letter-spacing."""
+    global _conferido
+    if not _conferido:
+        _conferido = True          # antes de conferir: a conferência usa a própria conta
+        conferir_instrumento()
+    return _largura_crua(txt, fs, peso, espaco, caixaalta)
+
+
+def _largura_crua(txt, fs, peso, espaco=0.0, caixaalta=False):
     if caixaalta:
         txt = txt.upper()
     if not txt:

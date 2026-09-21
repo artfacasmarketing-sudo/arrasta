@@ -5,6 +5,8 @@ correção, e a segunda resposta, correta, é aceita. A chamada à API de verdad
 """
 import copy
 import json
+import os
+import pathlib
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -49,8 +51,11 @@ def servidor(monkeypatch):
         def do_POST(self):
             corpo = json.loads(self.rfile.read(int(self.headers["content-length"])))
             recebidos.append({"caminho": self.path, "beta": self.headers.get("anthropic-beta"), "corpo": corpo})
-            dados = json.dumps(fila.pop(0)).encode()
-            self.send_response(200)
+            proximo = fila.pop(0)
+            # (status, corpo) quando o teste quer um erro; só o corpo quando é 200
+            status, proximo = proximo if isinstance(proximo, tuple) else (200, proximo)
+            dados = json.dumps(proximo).encode()
+            self.send_response(status)
             self.send_header("content-type", "application/json")
             self.send_header("content-length", str(len(dados)))
             self.end_headers()
@@ -194,3 +199,135 @@ def test_visual_imagem_nao_trava_o_laco_da_ia(servidor, monkeypatch, tmp_path):
     assert dados["visual"] == "imagem" and dados["imagem"] == str(foto)
     # e o prompt que foi para a IA é o do visual pedido
     assert "CABE NA TELA" in recebidos[0]["corpo"]["input"][0]["content"]
+
+
+# ---------------------------------------------------------------------------------------------------
+# Caminho por CLI de assinatura: o claude e o codex como geradores de texto, sem chave.
+# Aqui eles são falsos — o CI não tem login. O que estes testes cobram é o CONTRATO: as bandeiras de
+# isolamento saem na linha de comando, a correção volta na mesma conversa, e o id do modelo é o que o
+# CLI disse. Que o isolamento funciona de verdade, quem prova é a sonda (b1/sondas no laboratório).
+
+CARROSSEL_RUIM = {"slides": [dict(s) for s in slides_da_api()]}
+CARROSSEL_BOM = {"slides": [dict(s) for s in slides_da_api()]}
+CARROSSEL_RUIM["slides"][1]["texto"] = "Quem posta 3 vezes por semana cresce mais."
+
+
+def _falso(pasta, nome, corpo):
+    p = pasta / nome
+    p.write_text("#!/usr/bin/env python3\nimport sys, os, json, pathlib\n" + corpo, encoding="utf-8")
+    p.chmod(0o755)
+    return p
+
+
+@pytest.fixture
+def cli_falso(tmp_path, monkeypatch):
+    """põe um claude e um codex falsos no PATH; cada chamada grava argv e ambiente num JSONL."""
+    binario = tmp_path / "bin"
+    binario.mkdir()
+    diario = tmp_path / "chamadas.jsonl"
+    comum = f"""
+diario = pathlib.Path({str(diario)!r})
+entrada = sys.stdin.read()
+with diario.open("a", encoding="utf-8") as f:
+    lar = os.environ.get("CODEX_HOME") or ""
+    f.write(json.dumps({{"argv": sys.argv, "entrada": entrada, "cwd": os.getcwd(),
+                         "cwd_vazio": not os.listdir(os.getcwd()),
+                         "HOME": os.environ.get("HOME"), "CODEX_HOME": lar,
+                         "itens_do_lar": sorted(os.listdir(lar)) if os.path.isdir(lar) else [],
+                         "login_e_link": os.path.islink(os.path.join(lar, "auth.json"))}}) + "\\n")
+n = sum(1 for _ in diario.open(encoding="utf-8"))
+carrossel = {json.dumps(CARROSSEL_RUIM)!r} if n == 1 else {json.dumps(CARROSSEL_BOM)!r}
+"""
+    _falso(binario, "claude", comum + """
+print(json.dumps({"type": "result", "is_error": False, "result": carrossel,
+                  "modelUsage": {"claude-opus-5[1m]": {"inputTokens": 1, "outputTokens": 2}}}))
+""")
+    # o codex de verdade manda o cabeçalho (sessão e modelo) no STDERR e só a resposta no stdout.
+    # O falso fazia pelo stdout e por isso não pegou o defeito: o provedor lia o stream errado.
+    _falso(binario, "codex", comum + """
+print("session id: 01a0-falsa", file=sys.stderr)
+print("model: gpt-5.6-sol", file=sys.stderr)
+alvo = sys.argv[sys.argv.index("-o") + 1]
+pathlib.Path(alvo).write_text("Segue o JSON:\\n" + carrossel, encoding="utf-8")
+""")
+    monkeypatch.setenv("PATH", f"{binario}:{os.environ['PATH']}")
+    lar = tmp_path / "codexhome"
+    lar.mkdir()
+    (lar / "auth.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("CODEX_HOME", str(lar))
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    return diario
+
+
+def chamadas(diario):
+    return [json.loads(l) for l in diario.read_text(encoding="utf-8").splitlines()]
+
+
+def test_cli_so_entra_quando_e_pedido(cli_falso, monkeypatch):
+    """sem --ia, nada muda: quem não tem chave continua caindo no caminho sem chave."""
+    assert ia.provedor() is None
+    assert ia.provedor("claude_code") == "claude_code"
+    assert ia.provedor("codex") == "codex"
+    monkeypatch.setenv("PATH", "/nao/existe")
+    with pytest.raises(ia.FalhaIA, match="comando claude"):
+        ia.provedor("claude_code")
+
+
+@pytest.mark.parametrize("qual, bandeiras", [
+    ("claude_code", ["--safe-mode", "--strict-mcp-config", "--tools"]),
+    ("codex", ["--ignore-rules", "--skip-git-repo-check", "project_doc_max_bytes=0"]),
+])
+def test_cli_gera_isolado_e_corrige_na_mesma_conversa(cli_falso, qual, bandeiras):
+    dados, tentativas, p, modelo = ia.gerar("carrossel que prende", ia=qual, avisar=calar)
+
+    assert (p, tentativas) == (qual, 2), "a resposta ruim tinha de voltar para o mesmo CLI"
+    assert modelo == ("claude-opus-5[1m]" if qual == "claude_code" else "gpt-5.6-sol")
+    c = chamadas(cli_falso)
+    assert len(c) == 2
+    for b in bandeiras:
+        assert b in c[0]["argv"], f"faltou {b} na linha de comando"
+    # a segunda chamada continua a MESMA conversa, e manda só a correção
+    segunda = " ".join(c[1]["argv"])
+    assert ("--resume" in segunda) or (" resume " in segunda)
+    assert "Seu carrossel quebrou estas regras" in c[1]["entrada"]
+    assert "3" in c[1]["entrada"] and "não está no tema" in c[1]["entrada"]
+    # a primeira mandou o prompt do arrasta inteiro
+    assert "carrossel que prende" in c[0]["entrada"] and "REGRAS DE ESCRITA" in c[0]["entrada"]
+    # e rodou numa pasta vazia
+    assert c[0]["cwd_vazio"]
+
+
+def test_codex_roda_com_home_proprio_e_so_o_login(cli_falso, tmp_path):
+    """medido em 20/09: o codex lê o AGENTS.md de $CODEX_HOME e as skills de ~/.claude/skills mesmo com
+    --ignore-user-config. O isolamento que funciona é HOME e CODEX_HOME próprios, com só o login dentro."""
+    ia.gerar("brindes", ia="codex", avisar=calar)
+    c = chamadas(cli_falso)[0]
+    assert c["HOME"] != os.path.expanduser("~")
+    assert c["itens_do_lar"] == ["auth.json"]
+    assert c["login_e_link"], "o login é apontado, nunca copiado"
+
+
+def test_claude_code_nao_mexe_no_home(cli_falso):
+    """o claude se isola por bandeira; mexer no HOME dele tiraria o login da assinatura."""
+    ia.gerar("brindes", ia="claude_code", avisar=calar)
+    assert chamadas(cli_falso)[0]["HOME"] == os.path.expanduser("~")
+
+
+@pytest.mark.parametrize("corpo, trecho, nao_pode", [
+    # o que a OpenAI manda de verdade quando a conta zera (medido em 20/09/2026):
+    ({"error": {"message": "You have no credits remaining.", "type": "insufficient_quota",
+                "param": None, "code": "credit_balance_exhausted"}}, "sem crédito", "Espere"),
+    # e o 429 de limite por minuto, que continua sendo "espere"
+    ({"error": {"message": "Rate limit reached for gpt-6-astra", "type": "requests",
+                "param": None, "code": "rate_limit_exceeded"}}, "Espere um pouco", "sem crédito"),
+])
+def test_os_dois_429_da_openai_dizem_coisas_diferentes(servidor, monkeypatch, corpo, trecho, nao_pode):
+    """conta sem crédito e limite por minuto chegam os dois como 429. Mandar esperar quem está sem crédito
+    é mandar a pessoa esperar para sempre: o conserto é outro, e a mensagem tem de dizer qual."""
+    recebidos, fila = servidor
+    monkeypatch.setenv("OPENAI_API_KEY", "chave-de-teste")
+    fila.extend([(429, corpo)] * 6)
+    with pytest.raises(ia.FalhaIA) as e:
+        ia.gerar("tema qualquer", avisar=calar)
+    assert trecho in str(e.value) and nao_pode not in str(e.value)

@@ -12,7 +12,8 @@ requires-python = ">=3.12"
 dependencies = [
     "playwright>=1.45",
     "pillow>=10",
-    "fonttools[woff]>=4.50",
+    # <5: a conta de largura lê tabela interna do fontTools (VarStore, GPOS, HVAR), sem contrato público
+    "fonttools[woff]>=4.50,<5",
     "anthropic>=1.7",
     "openai>=3.16",
 ]
