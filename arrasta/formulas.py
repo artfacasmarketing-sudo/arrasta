@@ -139,8 +139,11 @@ def texto(objetivo, slides):
         f"GANCHO DA CAPA: {f['capa']}.",
         f"PEDIDO DO ÚLTIMO SLIDE: um só, de {verbo}. Escreva com as suas palavras, no espírito de "
         f'"{exemplo}".',
-        f"QUANDO ESTA FÓRMULA NÃO SERVE: {f['nao_usar']}. Se for o caso deste tema, diga isso no lugar de "
-        "forçar a fórmula.",
+        # o "quando não usar" é para quem ESCOLHE o objetivo, e mora no `arrasta objetivos`. Aqui ele entra
+        # só como cuidado: mandar a IA "dizer que não serve" faz ela responder em prosa e quebrar o JSON —
+        # aconteceu em 5 de 20 temas na conferência de 21/09/2026, 4 deles em autoridade.
+        f"CUIDADO COM ESTA FÓRMULA: {f['nao_usar']}. Se for o caso deste tema, escreva com o que o tema dá "
+        f"e não invente o que falta. A resposta continua sendo só o JSON.",
     ]
     return "\n".join(linhas)
 

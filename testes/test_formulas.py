@@ -45,6 +45,9 @@ def test_o_prompt_leva_a_espinha_o_gancho_e_o_pedido(obj):
     verbo, exemplo = F.PEDIDOS[obj]
     assert f"de {verbo}" in t and exemplo in t
     assert F.FORMULAS[obj]["nao_usar"] in t
+    # e o cuidado nunca pode virar licença para responder em prosa: 5 de 20 quebraram assim em 21/09
+    assert "A resposta continua sendo só o JSON" in t
+    assert "diga isso no lugar de forçar" not in t
 
 
 def test_sem_objetivo_o_prompt_e_o_de_sempre():

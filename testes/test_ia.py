@@ -340,3 +340,19 @@ def test_os_dois_429_da_openai_dizem_coisas_diferentes(servidor, monkeypatch, co
     with pytest.raises(ia.FalhaIA) as e:
         ia.gerar("tema qualquer", avisar=calar)
     assert trecho in str(e.value) and nao_pode not in str(e.value)
+
+
+def test_resposta_em_prosa_diz_o_que_a_ia_respondeu(cli_falso, tmp_path, monkeypatch):
+    """a IA às vezes responde em prosa em vez do carrossel. "JSON quebrado" esconde o motivo: quem lê
+    precisa ver o que ela disse para saber se muda o tema ou o objetivo."""
+    binario = tmp_path / "bin"
+    _falso(binario, "claude", """
+sys.stdin.read()
+print(json.dumps({"type": "result", "is_error": False,
+                  "result": "Este tema não serve para essa fórmula: não traz nenhum caso nem número.",
+                  "modelUsage": {"claude-opus-5[1m]": {}}}))
+""")
+    with pytest.raises(ia.FalhaIA) as e:
+        ia.gerar("como vender mais", ia="claude_code", avisar=calar)
+    assert "não devolveu o carrossel em JSON" in str(e.value)
+    assert "não traz nenhum caso nem número" in str(e.value)

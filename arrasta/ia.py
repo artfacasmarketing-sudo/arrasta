@@ -308,7 +308,11 @@ def gerar(tema, publico=None, slides=7, modelo=None, ia=None, avisar=print, cont
         try:
             dados = json.loads(texto) if p not in CLIS else resposta.extrair(texto)
         except (json.JSONDecodeError, resposta.RespostaInvalida):
-            raise FalhaIA("a IA devolveu um JSON quebrado")
+            # a IA às vezes responde em prosa em vez de escrever o carrossel. Dizer "JSON quebrado" esconde
+            # o motivo; quem lê precisa ver o que ela disse para saber se muda o tema ou o objetivo.
+            comeco = " ".join((texto or "").split())[:300]
+            raise FalhaIA("a IA não devolveu o carrossel em JSON."
+                          + (f" Ela respondeu: {comeco}" if comeco else " A resposta veio vazia."))
         dados.update(contexto)
         regras.normalizar(dados)
         erros = regras.verificar(dados, fonte_dos_numeros=fonte)
