@@ -319,7 +319,8 @@ def test_codex_roda_com_home_proprio_e_so_o_login(cli_falso, tmp_path):
 def test_claude_code_nao_mexe_no_home(cli_falso):
     """o claude se isola por bandeira; mexer no HOME dele tiraria o login da assinatura."""
     ia.gerar("brindes", ia="claude_code", avisar=calar)
-    assert chamadas(cli_falso)[0]["HOME"] == os.path.expanduser("~")
+    # comparado com o que ESTE processo tem, não com expanduser: no Windows não existe HOME no ambiente
+    assert chamadas(cli_falso)[0]["HOME"] == os.environ.get("HOME")
 
 
 @pytest.mark.parametrize("corpo, trecho, nao_pode", [
