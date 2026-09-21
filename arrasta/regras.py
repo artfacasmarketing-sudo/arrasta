@@ -78,8 +78,11 @@ def normalizar(dados):
     return dados
 
 
-def verificar(dados, fonte_dos_numeros=None):
-    """devolve [(regra, onde, problema)]. fonte_dos_numeros: texto onde todo número dos slides tem de aparecer."""
+def verificar(dados, fonte_dos_numeros=None, miolo_sem_imagem=None):
+    """devolve [(regra, onde, problema)]. fonte_dos_numeros: texto onde todo número dos slides tem de aparecer.
+    miolo_sem_imagem (opcional): teto de palavras do slide do miolo que NÃO tem imagem (nem no slide, nem no topo).
+    Sem ele, vale MIOLO_TOTAL em todo slide, como sempre; slide com imagem fica sempre em MIOLO_TOTAL. O título do
+    miolo continua em MIOLO_TITULO. Quem integra passa um teto maior só onde o molde tem espaço para texto."""
     erros = []
     add = lambda regra, onde, msg: erros.append((regra, onde, msg))
 
@@ -155,8 +158,11 @@ def verificar(dados, fonte_dos_numeros=None):
             if palavras(tit) > MIOLO_TITULO:
                 add("pouco texto por slide", onde, f"titulo com {palavras(tit)} palavras; até {MIOLO_TITULO}")
             total = palavras(tit) + palavras(txt)
-            if total > MIOLO_TOTAL:
-                add("pouco texto por slide", onde, f"{total} palavras no slide; até {MIOLO_TOTAL}")
+            teto = MIOLO_TOTAL
+            if miolo_sem_imagem is not None and not (s.get("imagem") or dados.get("imagem")):
+                teto = miolo_sem_imagem
+            if total > teto:
+                add("pouco texto por slide", onde, f"{total} palavras no slide; até {teto}")
         else:
             if not ped:
                 add("pedido no lugar certo", onde, "o último slide tem de ter o pedido (comentar, salvar ou mandar pra alguém)")

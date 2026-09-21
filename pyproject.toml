@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arrasta"
-version = "0.1.0"
+version = "0.2.0"
 description = "Escreva o tema, saia com o carrossel de Instagram pronto pra postar."
 readme = "README.md"
 license = "MIT"
