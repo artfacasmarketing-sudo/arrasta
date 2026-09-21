@@ -35,6 +35,37 @@ def test_limite_exato_passa_e_um_a_mais_reprova():
     assert regras_quebradas(d) == {"gancho na capa"}
 
 
+def test_teto_do_miolo_sem_imagem_e_opcional():
+    # sem o parâmetro: o teto de sempre, com ou sem imagem
+    d = ex()
+    d["slides"][1]["titulo"] = frase(5)
+    d["slides"][1]["texto"] = frase(regras.MIOLO_TOTAL - 5)
+    assert regras_quebradas(d) == set()
+    d["slides"][1]["texto"] = frase(regras.MIOLO_TOTAL - 4)
+    assert regras_quebradas(d) == {"pouco texto por slide"}
+    # com o parâmetro: o slide sem imagem vai até o teto novo, e um a mais reprova
+    d["slides"][1]["texto"] = frase(50 - 5)
+    assert {r for r, _, _ in regras.verificar(d, miolo_sem_imagem=50)} == set()
+    d["slides"][1]["texto"] = frase(50 - 4)
+    erros = regras.verificar(d, miolo_sem_imagem=50)
+    assert [(r, m) for r, _, m in erros] == [("pouco texto por slide", "51 palavras no slide; até 50")]
+    # o título do miolo não muda de teto
+    d["slides"][1].update(titulo=frase(regras.MIOLO_TITULO + 1), texto=frase(10))
+    assert {r for r, _, _ in regras.verificar(d, miolo_sem_imagem=50)} == {"pouco texto por slide"}
+
+
+def test_slide_com_imagem_fica_no_teto_de_sempre():
+    d = ex()
+    d["slides"][1].update(titulo=frase(5), texto=frase(regras.MIOLO_TOTAL - 4), imagem="foto.jpg")
+    erros = regras.verificar(d, miolo_sem_imagem=50)
+    assert [(o, m) for r, o, m in erros if r == "pouco texto por slide"] == [("slide 2", f"{regras.MIOLO_TOTAL + 1} palavras no slide; até {regras.MIOLO_TOTAL}")]
+    # imagem no topo vale para todos os slides
+    d = ex()
+    d["imagem"] = "foto.jpg"
+    d["slides"][1].update(titulo=frase(5), texto=frase(regras.MIOLO_TOTAL - 4))
+    assert "pouco texto por slide" in {r for r, _, _ in regras.verificar(d, miolo_sem_imagem=50)}
+
+
 @pytest.mark.parametrize("plantar, regra", [
     (lambda d: d["slides"].pop(1) and d["slides"].pop(1), "estrutura"),
     (lambda d: d["slides"].extend(copy.deepcopy(d["slides"][1:3]) * 3), "estrutura"),
