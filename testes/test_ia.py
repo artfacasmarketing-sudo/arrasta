@@ -7,6 +7,7 @@ import copy
 import json
 import os
 import pathlib
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -213,8 +214,14 @@ CARROSSEL_RUIM["slides"][1]["texto"] = "Quem posta 3 vezes por semana cresce mai
 
 
 def _falso(pasta, nome, corpo):
+    """um CLI falso no PATH. No Windows, quem é achado é o .bat; ele chama o .py ao lado."""
+    py = pasta / f"{nome}.py"
+    py.write_text("import sys, os, json, pathlib\n" + corpo, encoding="utf-8")
+    if os.name == "nt":
+        (pasta / f"{nome}.bat").write_text(f'@"{sys.executable}" "%~dp0{nome}.py" %*\n', encoding="utf-8")
+        return py
     p = pasta / nome
-    p.write_text("#!/usr/bin/env python3\nimport sys, os, json, pathlib\n" + corpo, encoding="utf-8")
+    p.write_text(f"#!{sys.executable}\n" + py.read_text(encoding="utf-8"), encoding="utf-8")
     p.chmod(0o755)
     return p
 
@@ -234,7 +241,8 @@ with diario.open("a", encoding="utf-8") as f:
                          "cwd_vazio": not os.listdir(os.getcwd()),
                          "HOME": os.environ.get("HOME"), "CODEX_HOME": lar,
                          "itens_do_lar": sorted(os.listdir(lar)) if os.path.isdir(lar) else [],
-                         "login_e_link": os.path.islink(os.path.join(lar, "auth.json"))}}) + "\\n")
+                         "login_e_link": (os.path.islink(os.path.join(lar, "auth.json"))
+                                          or os.stat(os.path.join(lar, "auth.json")).st_nlink > 1)}}) + "\\n")
 n = sum(1 for _ in diario.open(encoding="utf-8"))
 carrossel = {json.dumps(CARROSSEL_RUIM)!r} if n == 1 else {json.dumps(CARROSSEL_BOM)!r}
 """
@@ -250,7 +258,7 @@ print("model: gpt-5.6-sol", file=sys.stderr)
 alvo = sys.argv[sys.argv.index("-o") + 1]
 pathlib.Path(alvo).write_text("Segue o JSON:\\n" + carrossel, encoding="utf-8")
 """)
-    monkeypatch.setenv("PATH", f"{binario}:{os.environ['PATH']}")
+    monkeypatch.setenv("PATH", str(binario) + os.pathsep + os.environ["PATH"])
     lar = tmp_path / "codexhome"
     lar.mkdir()
     (lar / "auth.json").write_text("{}", encoding="utf-8")
@@ -264,12 +272,12 @@ def chamadas(diario):
     return [json.loads(l) for l in diario.read_text(encoding="utf-8").splitlines()]
 
 
-def test_cli_so_entra_quando_e_pedido(cli_falso, monkeypatch):
+def test_cli_so_entra_quando_e_pedido(cli_falso, monkeypatch, tmp_path):
     """sem --ia, nada muda: quem não tem chave continua caindo no caminho sem chave."""
     assert ia.provedor() is None
     assert ia.provedor("claude_code") == "claude_code"
     assert ia.provedor("codex") == "codex"
-    monkeypatch.setenv("PATH", "/nao/existe")
+    monkeypatch.setenv("PATH", str(tmp_path / "nao-existe"))
     with pytest.raises(ia.FalhaIA, match="comando claude"):
         ia.provedor("claude_code")
 

@@ -193,7 +193,15 @@ def _ambiente(qual, base):
         raise FalhaIA("o codex não está logado (não achei o auth.json). Rode: codex login")
     alvo = lar / "auth.json"
     if not alvo.exists():
-        alvo.symlink_to(login)   # o login não é copiado nem lido: só apontado
+        # o login é apontado, nunca copiado nem lido. O Windows só faz symlink com privilégio;
+        # lá vale o hardlink, que é o mesmo arquivo com outro nome.
+        try:
+            alvo.symlink_to(login)
+        except OSError:
+            try:
+                os.link(login, alvo)
+            except OSError as e:
+                raise FalhaIA(f"não deu para apontar o login do codex em {lar}: {e}")
     env = dict(os.environ)
     env.update(HOME=str(casa), CODEX_HOME=str(lar))
     return env
