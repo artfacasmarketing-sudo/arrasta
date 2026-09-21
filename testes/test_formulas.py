@@ -117,7 +117,7 @@ def test_clique_com_destino_leva_o_destino_e_a_proibicao(tmp_path):
                      "--destino", "checklist do que entra no kit", "--saida", str(pasta)]) == 0
     t = (pasta / "prompt.txt").read_text(encoding="utf-8")
     assert "DESTINO (o que a pessoa encontra no link): checklist do que entra no kit" in t
-    assert "Não invente item, formato, preço, prazo" in t
+    assert "não invente item, formato, preço nem prazo DO DESTINO" in t
     assert json.loads((pasta / "pedido.json").read_text(encoding="utf-8"))["destino"] == "checklist do que entra no kit"
 
 
@@ -146,6 +146,47 @@ def test_autoridade_so_usa_primeira_pessoa_com_experiencia_no_tema():
     assert any("SÓ se o TEMA trouxer a experiência" in passo[1] for passo in f["miolo"])
 
 
-def test_comentario_pede_uma_palavra_do_tema_em_maiusculas():
+def test_comentario_pede_uma_palavra_do_tema_em_maiusculas_e_marcada():
+    """no claro e no imagem o pedido já sai todo em caixa-alta: sem a marca, a palavra-chave some."""
     verbo, exemplo = F.PEDIDOS["comentario"]
-    assert "MAIÚSCULAS" in verbo and "CADERNO" in exemplo
+    assert "MAIÚSCULAS" in verbo and "asteriscos" in verbo
+    assert "*CADERNO*" in exemplo
+
+
+def test_a_palavra_chave_marcada_passa_nas_regras_e_sai_destacada_nos_tres_visuais(tmp_path):
+    """o render já tem ênfase no pedido: cor no claro e no imagem, sublinhado dentro da pílula no escuro
+    (amarelo sobre a pílula amarela sumiria). Controle: o mesmo pedido SEM a marca não tem ênfase nenhuma.
+    No escuro a ênfase é sublinhado, que não aparece como cor: ali o teste só garante que nada quebra, e a
+    prova de que o sublinhado sai é o print de 21/09/2026 (pedido-com-enfase-3-visuais.png)."""
+    from PIL import Image
+    from arrasta import render
+    foto = tmp_path / "f.jpg"
+    Image.new("RGB", (1600, 1200), "#334455").save(foto)
+    for vis in ("escuro", "claro", "imagem"):
+        for marcado, esperado in ((True, 1), (False, 0)):
+            pedido = "Acha que o caderno dá conta? Comenta " + ("*CADERNO*" if marcado else "CADERNO") + " aqui."
+            d = {"visual": vis, "slides": [
+                {"tipo": "capa", "titulo": "Vendedor bom anota tudo no caderno"},
+                {"tipo": "miolo", "titulo": "O caderno é do vendedor"},
+                {"tipo": "miolo", "titulo": "Anotado não é controlado"},
+                {"tipo": "miolo", "titulo": "A conversa mora no celular"},
+                {"tipo": "final", "titulo": "Quem guarda a conversa é o dono.", "pedido": pedido}]}
+            if vis == "imagem":
+                d["imagem"] = str(foto)
+            assert regras.verificar(d) == [], vis
+            medidas = []
+            render.renderizar(d, tmp_path / f"{vis}-{marcado}", previa=False, medidas=medidas)
+            # o trecho marcado vira um texto próprio dentro do pedido, com a cor e o contraste medidos
+            trechos_do_pedido = [m for m in medidas if m["slide"] == 5 and m["id"] == "pedido"]
+            cores = {m["cor"] for m in trechos_do_pedido}
+            assert len(cores) == (2 if marcado and vis != "escuro" else 1), (vis, marcado, cores)
+
+
+def test_clique_separa_o_destino_das_dicas():
+    """o que existe do outro lado sai do destino; a dica é conteúdo do carrossel, sobre o tema."""
+    t = F.texto("clique", 7, "checklist do que entra no kit")
+    assert "não invente item, formato, preço nem prazo DO DESTINO" in t
+    assert "Nunca diga que uma dica está no link" in t
+    assert "tirada do DESTINO" not in t
+    passos = [p for p, _ in F.espinha("clique", 7)]
+    assert passos.count("uma dica") == 3 and "uma amostra" not in passos

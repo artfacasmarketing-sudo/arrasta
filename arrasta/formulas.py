@@ -97,8 +97,10 @@ FORMULAS = {
             ("por que o jeito comum não chega lá", "o caminho que a pessoa tentaria sozinha e onde ele para"),
             ("o que existe do outro lado", "o que ela vai encontrar, SÓ com o que está no DESTINO, dito pelo "
                                            "que resolve"),
-            ("uma amostra", "uma coisa útil de verdade, tirada do DESTINO, que já serve mesmo sem clicar",
-             "repete"),
+            # a amostra é conteúdo do CARROSSEL, sobre o tema: tirar a amostra do destino virou logística
+            # ("use o e-mail que você lê todo dia") no lugar de dica ("nome maior que o logo") — 21/09/2026
+            ("uma dica", "uma dica concreta sobre o TEMA, que já serve sem clicar. É conteúdo deste carrossel, "
+                         "não do destino: nunca diga que a dica está no link", "repete"),
         ],
         "final": "o título fecha a ideia numa frase que a pessoa repetiria. O \"pra quem\" fica só no pedido",
         "nao_usar": "quando não existe destino de verdade: sem página, material ou link, a ponte não leva a "
@@ -110,8 +112,10 @@ FORMULAS = {
 PEDIDOS = {
     "alcance": ("mandar pra alguém", "Manda pra quem precisa ler isso"),
     "salvamento": ("salvar", "Salva pra usar na hora de fazer"),
-    "comentario": ("comentar uma palavra do tema, escrita em MAIÚSCULAS no pedido",
-                   "Discorda? Comenta CADERNO aqui embaixo"),
+    # a palavra-chave vai em MAIÚSCULAS e marcada com *asteriscos*: no claro e no imagem o pedido já sai todo
+    # em caixa-alta, e só a cor separa a palavra; no escuro a marca vira sublinhado dentro da pílula
+    "comentario": ("comentar uma palavra do tema, escrita em MAIÚSCULAS e marcada com asteriscos (ela conta "
+                   "como um dos 2 destaques do slide)", "Discorda? Comenta *CADERNO* aqui embaixo"),
     "autoridade": ("seguir", "Me segue pra ver o resto do método"),
     "clique": ("clicar", "O link está na bio"),
 }
@@ -151,8 +155,10 @@ def texto(objetivo, slides, destino=None):
               ""]
     if destino:
         linhas += [f"DESTINO (o que a pessoa encontra no link): {destino}",
-                   "Fale do destino SÓ com o que está escrito na linha acima. Não invente item, formato, preço, "
-                   "prazo nem nada que não esteja nela.",
+                   "Quando falar do que existe do outro lado do link, use SÓ o que está escrito na linha acima: "
+                   "não invente item, formato, preço nem prazo DO DESTINO.",
+                   "As dicas do miolo são outra coisa: conteúdo do carrossel, sobre o tema, que servem sem clicar. "
+                   "Nunca diga que uma dica está no link.",
                    ""]
     linhas += [
               "ESPINHA, slide a slide. Cada slide cumpre o papel dele e fecha a própria ideia:"]
